@@ -1,18 +1,24 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-
-import 'src/app.dart';
-import 'src/settings/settings_controller.dart';
-import 'src/settings/settings_service.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:settle_up/screens/auth_screen.dart';
 
 void main() async {
-  final settingsController = SettingsController(SettingsService());
-
-  // Load the user's preferred theme while the splash screen is displayed.
-  // This prevents a sudden theme change when the app is first displayed.
-  await settingsController.loadSettings();
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  runApp(const MyApp());
+}
 
-  runApp(MyApp(settingsController: settingsController));
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Splitwise Clone',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: const AuthScreen(),
+    );
+  }
 }
