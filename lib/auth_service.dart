@@ -18,9 +18,11 @@ class AuthService {
 
       if (user != null) {
         // Save user information in Firestore
-        await _firestore.collection('users').doc(user.uid).set({
+        await _firestore.collection('Users').doc(user.uid).set({
           'email': user.email,
           'createdAt': FieldValue.serverTimestamp(),
+          'name': '',
+          'profileImageUrl': '',
         });
       }
 
@@ -54,7 +56,7 @@ class AuthService {
   Future<Map<String, dynamic>?> getUserData(String uid) async {
     try {
       DocumentSnapshot doc =
-          await _firestore.collection('users').doc(uid).get();
+          await _firestore.collection('Users').doc(uid).get();
       return doc.data() as Map<String, dynamic>?;
     } catch (e) {
       print("Error fetching user data: $e");

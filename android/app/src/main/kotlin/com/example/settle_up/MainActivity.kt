@@ -1,4 +1,4 @@
-package com.example.settle_up
+package com.jf.settleup
 
 import io.flutter.embedding.android.FlutterActivity
 

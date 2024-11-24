@@ -1,0 +1,10 @@
+{
+  "configurations": [
+    {
+      "name": "settle_up",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "debug"
+    }
+  ]
+}
