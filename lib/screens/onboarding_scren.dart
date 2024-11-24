@@ -58,11 +58,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       }
 
       // Save user details to Firestore
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-        'name': _nameController.text,
-        'profileImageUrl': imageUrl,
-        'createdAt': Timestamp.now(),
-      });
+      await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(user.uid)
+          .update({'name': _nameController.text, 'profileImageUrl': imageUrl});
 
       // Navigate to the home screen or another screen
       Navigator.of(context).pushReplacementNamed('/home');

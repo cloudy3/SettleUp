@@ -20,9 +20,11 @@ class AuthService {
         // Save user information in Firestore
         await _firestore.collection('Users').doc(user.uid).set({
           'email': user.email,
-          'createdAt': FieldValue.serverTimestamp(),
+          'createdAt': Timestamp.now(),
           'name': '',
-          'profileImageUrl': '',
+          'profileImageUrl': null,
+          'friends': [],
+          'groups': [],
         });
       }
 
