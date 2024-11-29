@@ -7,46 +7,35 @@ class AuthService {
 
   // Register user
   Future<User?> register(String email, String password) async {
-    try {
-      UserCredential userCredential =
-          await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+    UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
 
-      User? user = userCredential.user;
+    User? user = userCredential.user;
 
-      if (user != null) {
-        // Save user information in Firestore
-        await _firestore.collection('Users').doc(user.uid).set({
-          'email': user.email,
-          'createdAt': Timestamp.now(),
-          'name': '',
-          'profileImageUrl': null,
-          'friends': [],
-          'groups': [],
-        });
-      }
-
-      return user;
-    } catch (e) {
-      print("Error registering: $e");
-      return null;
+    if (user != null) {
+      // Save user information in Firestore
+      await _firestore.collection('Users').doc(user.uid).set({
+        'email': user.email,
+        'createdAt': Timestamp.now(),
+        'name': '',
+        'profileImageUrl': null,
+        'friends': [],
+        'groups': [],
+      });
     }
+
+    return user;
   }
 
   // Login user
   Future<User?> login(String email, String password) async {
-    try {
-      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      return userCredential.user;
-    } catch (e) {
-      print("Error logging in: $e");
-      return null;
-    }
+    UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+    return userCredential.user;
   }
 
   // Logout user

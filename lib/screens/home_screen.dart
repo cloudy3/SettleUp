@@ -14,27 +14,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Pages for each tab
   final List<Widget> _pages = [
-    const Center(
-        child: Text("Groups Page")), // Replace with actual Group screen
-    const Center(
-        child: Text("Friends Page")), // Replace with actual Friends screen
-    const Center(
-        child: Text("Activity Page")), // Replace with actual Activity screen
-    const Center(
-        child: Text("Account Page")), // Replace with actual Account screen
+    const Center(child: Text("Groups Page")),
+    const Center(child: Text("Friends Page")),
+    const Center(child: Text("Activity Page")),
+    const Center(child: Text("Account Page")),
   ];
 
-  // Helper method to get initials from name
-  String getInitials(String name) {
-    List<String> nameParts = name.split(" ");
-    if (nameParts.length == 1) {
-      return nameParts[0][0]; // Single-word name
-    }
-    return nameParts[0][0] + nameParts[1][0]; // Two-word name
-  }
-
   // Declare user details
-  String? profileImageUrl;
+  String? avatarName;
   String userName = "";
 
   // Fetch user data from Firestore
@@ -45,7 +32,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (userDoc.exists) {
       setState(() {
         userName = userDoc['name'] ?? "User";
-        profileImageUrl = userDoc['profileImageUrl'];
+        avatarName =
+            userDoc['avatarName']; // Fetch avatar name saved in Firestore
       });
     }
   }
@@ -86,49 +74,32 @@ class _HomeScreenState extends State<HomeScreen> {
           });
         },
         items: [
-          // Groups Tab
           const BottomNavigationBarItem(
             icon: Icon(Icons.group),
             label: "Groups",
           ),
-          // Friends Tab
           const BottomNavigationBarItem(
             icon: Icon(Icons.person),
             label: "Friends",
           ),
-          // Activity Tab
           const BottomNavigationBarItem(
             icon: Icon(Icons.receipt_long),
             label: "Activity",
           ),
-          // Account Tab
-          // Account Tab
           BottomNavigationBarItem(
             icon: CircleAvatar(
-              radius: 12, // Adjust size as needed
-              backgroundImage: profileImageUrl != null
-                  ? NetworkImage(profileImageUrl!) // Use actual profile picture
-                  : null, // No profile picture
-              backgroundColor:
-                  Colors.blue.shade100, // Fallback background color
-              child: profileImageUrl == null
-                  ? Text(
-                      getInitials(userName).toUpperCase(), // Display initials
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    )
-                  : null,
+              radius: 12,
+              backgroundImage:
+                  AssetImage("$avatarName"), // Display the selected avatar
+              backgroundColor: Colors.blue.shade100,
             ),
             label: "Account",
           ),
         ],
-        type: BottomNavigationBarType.fixed, // Fixed layout for labels/icons
-        selectedItemColor: Colors.blueAccent, // Color for selected tab
-        unselectedItemColor: Colors.grey, // Color for unselected tabs
-        showUnselectedLabels: true, // Show labels for unselected tabs
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: Colors.blueAccent,
+        unselectedItemColor: Colors.grey,
+        showUnselectedLabels: true,
       ),
       body: Column(
         children: [
@@ -171,9 +142,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           Expanded(
-            // Friends and Groups List
             child: ListView.builder(
-              itemCount: 10, // Replace with your actual list count
+              itemCount: 10, // Replace with actual list count
               itemBuilder: (context, index) {
                 return _friendGroupItem(
                   name: "Group $index", // Replace with actual name

@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:settle_up/auth_service.dart';
 
@@ -26,19 +27,46 @@ class _AuthScreenState extends State<AuthScreen> {
       _isLoading = true;
     });
 
-    if (isLogin) {
-      // Login user
-      // AuthService().login(_emailController.text, _passwordController.text);
-    } else {
-      // Register user
-      await authService.register(
-          _emailController.text, _passwordController.text);
-    }
+    try {
+      if (isLogin) {
+        // Login user
+        await authService.login(
+            _emailController.text, _passwordController.text);
+      } else {
+        // Register user
+        await authService.register(
+            _emailController.text, _passwordController.text);
+      }
 
-    setState(() {
-      _isLoading = false;
-    });
-    Navigator.of(context).pushReplacementNamed('/onboarding');
+      // Navigate to onboarding after successful login or registration
+      Navigator.of(context).pushReplacementNamed('/onboarding');
+    } catch (e) {
+      String errorMessage = 'An error occurred. Please try again.';
+      if (e is FirebaseAuthException) {
+        switch (e.code) {
+          case 'user-not-found':
+            errorMessage = 'No user found with this email.';
+            break;
+          case 'wrong-password':
+            errorMessage = 'Incorrect password.';
+            break;
+          case 'email-already-in-use':
+            errorMessage = 'This email is already registered.';
+            break;
+          default:
+            errorMessage = 'Authentication failed. Please try again.';
+        }
+      }
+
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
