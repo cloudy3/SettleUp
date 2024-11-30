@@ -1,6 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
+import "package:cloud_firestore/cloud_firestore.dart";
+import "package:firebase_auth/firebase_auth.dart";
+import "package:flutter/material.dart";
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -27,13 +27,13 @@ class _HomeScreenState extends State<HomeScreen> {
   // Fetch user data from Firestore
   Future<void> fetchUserData(String userId) async {
     final userDoc =
-        await FirebaseFirestore.instance.collection('Users').doc(userId).get();
+        await FirebaseFirestore.instance.collection("Users").doc(userId).get();
 
     if (userDoc.exists) {
       setState(() {
-        userName = userDoc['name'] ?? "User";
+        userName = userDoc["name"] ?? "User";
         avatarName =
-            userDoc['avatarName']; // Fetch avatar name saved in Firestore
+            userDoc["avatarName"]; // Fetch avatar name saved in Firestore
       });
     }
   }

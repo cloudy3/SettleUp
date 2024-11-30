@@ -1,6 +1,6 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
-import 'package:settle_up/auth_service.dart';
+import "package:firebase_auth/firebase_auth.dart";
+import "package:flutter/material.dart";
+import "package:settle_up/auth_service.dart";
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -39,22 +39,22 @@ class _AuthScreenState extends State<AuthScreen> {
       }
 
       // Navigate to onboarding after successful login or registration
-      Navigator.of(context).pushReplacementNamed('/onboarding');
+      Navigator.of(context).pushReplacementNamed("/onboarding");
     } catch (e) {
-      String errorMessage = 'An error occurred. Please try again.';
+      String errorMessage = "An error occurred. Please try again.";
       if (e is FirebaseAuthException) {
         switch (e.code) {
-          case 'user-not-found':
-            errorMessage = 'No user found with this email.';
+          case "user-not-found":
+            errorMessage = "No user found with this email.";
             break;
-          case 'wrong-password':
-            errorMessage = 'Incorrect password.';
+          case "wrong-password":
+            errorMessage = "Incorrect password.";
             break;
-          case 'email-already-in-use':
-            errorMessage = 'This email is already registered.';
+          case "email-already-in-use":
+            errorMessage = "This email is already registered.";
             break;
           default:
-            errorMessage = 'Authentication failed. Please try again.';
+            errorMessage = "Authentication failed. Please try again.";
         }
       }
 
@@ -98,7 +98,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   const SizedBox(height: 20),
                   // Title
                   Text(
-                    _isLogin ? 'Welcome Back!' : 'Create an Account',
+                    _isLogin ? "Welcome Back!" : "Create an Account",
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -108,8 +108,8 @@ class _AuthScreenState extends State<AuthScreen> {
                   const SizedBox(height: 10),
                   Text(
                     _isLogin
-                        ? 'Log in to continue'
-                        : 'Sign up to start splitting expenses',
+                        ? "Log in to continue"
+                        : "Sign up to start splitting expenses",
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.grey[600],
@@ -120,7 +120,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   TextField(
                     controller: _emailController,
                     decoration: InputDecoration(
-                      labelText: 'Email',
+                      labelText: "Email",
                       filled: true,
                       fillColor: Colors.white,
                       border: OutlineInputBorder(
@@ -136,7 +136,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     controller: _passwordController,
                     obscureText: true,
                     decoration: InputDecoration(
-                      labelText: 'Password',
+                      labelText: "Password",
                       filled: true,
                       fillColor: Colors.white,
                       border: OutlineInputBorder(
@@ -160,7 +160,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     child: _isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
                         : Text(
-                            _isLogin ? 'Log In' : 'Sign Up',
+                            _isLogin ? "Log In" : "Sign Up",
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -173,8 +173,8 @@ class _AuthScreenState extends State<AuthScreen> {
                     onPressed: _toggleFormType,
                     child: Text(
                       _isLogin
-                          ? 'Don\'t have an account? Sign up'
-                          : 'Already have an account? Log in',
+                          ? "Don't have an account? Sign up"
+                          : "Already have an account? Log in",
                       style: const TextStyle(
                         fontSize: 14,
                         color: Colors.blueAccent,

@@ -57,8 +57,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       if (user == null) throw Exception("No user signed in");
 
       // Save user details to Firestore
-      await FirebaseFirestore.instance.collection("Users").doc(user.uid).update(
-          {"name": _nameController.text, "avatarName": _selectedAvatar});
+      await FirebaseFirestore.instance
+          .collection("Users")
+          .doc(user.uid)
+          .update({
+        "name": _nameController.text,
+        "avatarName": _selectedAvatar,
+        "onboardingCompleted": true,
+      });
 
       // Navigate to the home screen or another screen
       Navigator.of(context).pushReplacementNamed("/home");

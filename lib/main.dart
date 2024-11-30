@@ -1,27 +1,51 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:settle_up/screens/home_screen.dart';
-import 'package:settle_up/screens/onboarding_scren.dart';
-import 'firebase_options.dart';
-import 'package:settle_up/screens/auth_screen.dart';
+import "package:cloud_firestore/cloud_firestore.dart";
+import "package:firebase_auth/firebase_auth.dart";
+import "package:flutter/material.dart";
+import "package:firebase_core/firebase_core.dart";
+import "package:settle_up/screens/home_screen.dart";
+import "package:settle_up/screens/onboarding_scren.dart";
+import "firebase_options.dart";
+import "package:settle_up/screens/auth_screen.dart";
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const MyApp());
+
+  // Fetch initial route
+  final initialRoute = await getInitialRoute();
+
+  runApp(MyApp(initialRoute: initialRoute));
+}
+
+Future<String> getInitialRoute() async {
+  final user = FirebaseAuth.instance.currentUser;
+
+  if (user == null) {
+    return "/auth"; // User not signed in
+  }
+
+  // Fetch onboarding status from Firestore
+  final userDoc =
+      await FirebaseFirestore.instance.collection("Users").doc(user.uid).get();
+
+  if (!userDoc.exists || !(userDoc.data()?["onboardingCompleted"] ?? false)) {
+    return "/onboarding"; // Onboarding not completed
+  }
+
+  return "/home"; // Onboarding completed
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final String initialRoute;
+  const MyApp({required this.initialRoute, super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Splitwise Clone',
+      title: "Splitwise Clone",
       theme: ThemeData(
         // Define primary and secondary colors
         primarySwatch: Colors.blue,
@@ -108,15 +132,12 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      initialRoute:
-          FirebaseAuth.instance.currentUser == null ? '/auth' : '/onboarding',
+      initialRoute: initialRoute,
       routes: {
-        '/auth': (context) => const AuthScreen(),
-        '/onboarding': (context) => const OnboardingScreen(),
-        '/home': (context) =>
-            const HomeScreen(), // Define your home screen here
+        "/auth": (context) => const AuthScreen(),
+        "/onboarding": (context) => const OnboardingScreen(),
+        "/home": (context) => const HomeScreen(),
       },
-      // home: const AuthScreen(),
     );
   }
 }

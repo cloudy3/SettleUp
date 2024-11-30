@@ -8,16 +8,16 @@
 // Visit https://flutter.dev/to/widget-testing for
 // more information about Widget testing.
 
-import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
+import "package:flutter/material.dart";
+import "package:flutter_test/flutter_test.dart";
 
 void main() {
-  group('MyWidget', () {
-    testWidgets('should display a string of text', (WidgetTester tester) async {
+  group("MyWidget", () {
+    testWidgets("should display a string of text", (WidgetTester tester) async {
       // Define a Widget
       const myWidget = MaterialApp(
         home: Scaffold(
-          body: Text('Hello'),
+          body: Text("Hello"),
         ),
       );
 

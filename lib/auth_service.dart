@@ -1,5 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import "package:cloud_firestore/cloud_firestore.dart";
+import "package:firebase_auth/firebase_auth.dart";
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -16,13 +16,14 @@ class AuthService {
 
     if (user != null) {
       // Save user information in Firestore
-      await _firestore.collection('Users').doc(user.uid).set({
-        'email': user.email,
-        'createdAt': Timestamp.now(),
-        'name': '',
-        'profileImageUrl': null,
-        'friends': [],
-        'groups': [],
+      await _firestore.collection("Users").doc(user.uid).set({
+        "email": user.email,
+        "createdAt": Timestamp.now(),
+        "name": "",
+        "avatarName": "",
+        "friends": [],
+        "groups": [],
+        "onboardingCompleted": false,
       });
     }
 
@@ -47,7 +48,7 @@ class AuthService {
   Future<Map<String, dynamic>?> getUserData(String uid) async {
     try {
       DocumentSnapshot doc =
-          await _firestore.collection('Users').doc(uid).get();
+          await _firestore.collection("Users").doc(uid).get();
       return doc.data() as Map<String, dynamic>?;
     } catch (e) {
       print("Error fetching user data: $e");
