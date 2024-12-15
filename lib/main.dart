@@ -2,6 +2,7 @@ import "package:cloud_firestore/cloud_firestore.dart";
 import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/material.dart";
 import "package:firebase_core/firebase_core.dart";
+import "package:provider/provider.dart";
 import "package:settle_up/screens/home_screen.dart";
 import "package:settle_up/screens/onboarding_scren.dart";
 import "firebase_options.dart";
@@ -43,85 +44,57 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: "Splitwise Clone",
-      theme: ThemeData(
-        // Define primary and secondary colors
-        primarySwatch: Colors.blue,
-        primaryColor: Colors.blueAccent,
-        scaffoldBackgroundColor: Colors.grey[100],
+    return ChangeNotifierProvider(
+      create: (_) => ThemeProvider(),
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: "Splitwise Clone",
+            theme: themeProvider.currentTheme,
+            initialRoute: initialRoute,
+            routes: {
+              "/auth": (context) => const AuthScreen(),
+              "/onboarding": (context) => const OnboardingScreen(),
+              "/home": (context) => const HomeScreen(),
+            },
+          );
+        },
+      ),
+    );
+  }
+}
 
-        // Text Styles
-        textTheme: TextTheme(
-          headlineLarge: TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: Colors.blueGrey[900]),
-          headlineMedium: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.blueGrey[800]),
-          bodyLarge: TextStyle(fontSize: 16, color: Colors.grey[700]),
-          bodyMedium: TextStyle(fontSize: 14, color: Colors.grey[600]),
-        ),
+class ThemeProvider extends ChangeNotifier {
+  bool _isDarkMode = false;
 
-        // Input Decorations
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
-          ),
-          labelStyle: TextStyle(color: Colors.grey[600], fontSize: 14),
-          prefixIconColor: Colors.blueAccent,
-        ),
+  bool get isDarkMode => _isDarkMode;
 
-        // Button Styles
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blueAccent,
-            foregroundColor: Colors.white,
-            textStyle:
-                const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            padding: const EdgeInsets.symmetric(vertical: 12),
-          ),
-        ),
-        textButtonTheme: TextButtonThemeData(
-          style: TextButton.styleFrom(
-            foregroundColor: Colors.blueAccent,
-            textStyle:
-                const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-          ),
-        ),
+  ThemeData get currentTheme =>
+      _isDarkMode ? ThemeData.dark() : ThemeData.light();
 
-        // AppBar Theme
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.blueAccent,
-          elevation: 0,
-          iconTheme: IconThemeData(color: Colors.white),
-          titleTextStyle: TextStyle(
+  void toggleTheme() {
+    _isDarkMode = !_isDarkMode;
+    notifyListeners();
+  }
+
+  ThemeData get lightTheme => ThemeData(
+        brightness: Brightness.light,
+        primarySwatch: Colors.deepPurple,
+        primaryColor: Colors.blue.shade900,
+        scaffoldBackgroundColor: Colors.grey.shade100,
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.blue.shade900,
+          titleTextStyle: const TextStyle(
             color: Colors.white,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
         ),
-
-        // Floating Action Button Theme
-        floatingActionButtonTheme: const FloatingActionButtonThemeData(
-          backgroundColor: Colors.blueAccent,
+        floatingActionButtonTheme: FloatingActionButtonThemeData(
+          backgroundColor: Colors.blue.shade900,
           foregroundColor: Colors.white,
         ),
-
-        // Card Theme
         cardTheme: CardTheme(
           color: Colors.white,
           shadowColor: Colors.grey[300],
@@ -131,13 +104,81 @@ class MyApp extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-      ),
-      initialRoute: initialRoute,
-      routes: {
-        "/auth": (context) => const AuthScreen(),
-        "/onboarding": (context) => const OnboardingScreen(),
-        "/home": (context) => const HomeScreen(),
-      },
-    );
-  }
+        textTheme: TextTheme(
+          headlineLarge: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue.shade900),
+          headlineMedium: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue.shade800),
+          bodyLarge: TextStyle(fontSize: 16, color: Colors.grey.shade700),
+          bodyMedium: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.blue.shade900, width: 2),
+          ),
+        ),
+      );
+
+  ThemeData get darkTheme => ThemeData(
+        brightness: Brightness.dark,
+        primarySwatch: Colors.deepPurple,
+        primaryColor: Colors.deepPurple.shade900,
+        scaffoldBackgroundColor: Colors.grey.shade900,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.deepPurple,
+          titleTextStyle: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        floatingActionButtonTheme: FloatingActionButtonThemeData(
+          backgroundColor: Colors.blue.shade900,
+          foregroundColor: Colors.white,
+        ),
+        cardTheme: CardTheme(
+          color: Colors.grey[800],
+          shadowColor: Colors.grey[700],
+          elevation: 4,
+          margin: const EdgeInsets.all(8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        textTheme: TextTheme(
+          headlineLarge: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Colors.deepPurple.shade100),
+          headlineMedium: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.deepPurple.shade200),
+          bodyLarge: TextStyle(fontSize: 16, color: Colors.grey.shade400),
+          bodyMedium: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.grey[800],
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Colors.deepPurple, width: 2),
+          ),
+        ),
+      );
 }
