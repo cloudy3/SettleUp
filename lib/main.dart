@@ -134,7 +134,7 @@ class ThemeProvider extends ChangeNotifier {
         brightness: Brightness.dark,
         primarySwatch: Colors.deepPurple,
         primaryColor: Colors.deepPurple.shade900,
-        scaffoldBackgroundColor: Colors.grey.shade900,
+        scaffoldBackgroundColor: const Color.fromARGB(255, 4, 0, 53),
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.deepPurple,
           titleTextStyle: TextStyle(

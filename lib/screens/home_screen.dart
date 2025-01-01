@@ -2,6 +2,7 @@ import "package:cloud_firestore/cloud_firestore.dart";
 import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/material.dart";
 import "package:settle_up/screens/account_screen.dart";
+import "package:settle_up/screens/groups_screen.dart";
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,7 +16,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Pages for each tab
   final List<Widget> _pages = [
-    const Center(child: Text("Groups Page")),
+    const GroupsScreen(),
     const Center(child: Text("Friends Page")),
     const Center(child: Text("Activity Page")),
     const AccountScreen(),
