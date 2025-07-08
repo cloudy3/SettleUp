@@ -7,11 +7,11 @@ class GroupDetailsScreen extends StatelessWidget {
   final String imageUrl;
 
   const GroupDetailsScreen({
-    Key? key,
+    super.key,
     required this.groupId,
     required this.groupName,
     required this.imageUrl,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
