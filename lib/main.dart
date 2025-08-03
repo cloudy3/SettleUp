@@ -95,7 +95,7 @@ class ThemeProvider extends ChangeNotifier {
           backgroundColor: Colors.blue.shade900,
           foregroundColor: Colors.white,
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           color: Colors.white,
           shadowColor: Colors.grey[300],
           elevation: 4,
@@ -147,7 +147,7 @@ class ThemeProvider extends ChangeNotifier {
           backgroundColor: Colors.blue.shade900,
           foregroundColor: Colors.white,
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           color: Colors.grey[800],
           shadowColor: Colors.grey[700],
           elevation: 4,
