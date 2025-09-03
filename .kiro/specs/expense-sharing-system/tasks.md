@@ -14,7 +14,7 @@
   - Create indexes for efficient querying of expenses and balances
   - _Requirements: 1.4, 3.5, 6.4_
 
-- [ ] 3. Implement GroupService for group management
+- [x] 3. Implement GroupService for group management
 
   - Create GroupService class with methods for creating, updating, and fetching groups
   - Implement group invitation system with email-based invites
