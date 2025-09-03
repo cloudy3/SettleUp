@@ -7,7 +7,7 @@
   - Add unit tests for model validation and serialization
   - _Requirements: 1.2, 1.3, 3.2, 3.5_
 
-- [ ] 2. Set up Firestore collections and security rules
+- [x] 2. Set up Firestore collections and security rules
 
   - Define Firestore collection structure and document schemas
   - Implement security rules to restrict access to group members only

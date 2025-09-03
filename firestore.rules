@@ -1,0 +1,87 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if user is the document owner
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Helper function to check if user is a member of a group
+    function isGroupMember(groupId) {
+      return isAuthenticated() && 
+        request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.memberIds;
+    }
+
+    // Helper function to check if user is group creator
+    function isGroupCreator(groupId) {
+      return isAuthenticated() && 
+        request.auth.uid == get(/databases/$(database)/documents/groups/$(groupId)).data.createdBy;
+    }
+
+    // Users collection - users can only access their own document
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Groups collection - only group members can access
+    match /groups/{groupId} {
+      allow read: if isGroupMember(groupId);
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.createdBy;
+      allow update: if isGroupMember(groupId) && 
+        // Only allow updates to memberIds, pendingInvitations, and totalExpenses by group creator
+        (isGroupCreator(groupId) || 
+         // Or allow members to update their own invitation acceptance
+         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds', 'pendingInvitations'])));
+      allow delete: if isGroupCreator(groupId);
+    }
+
+    // Expenses collection - only group members can access
+    match /expenses/{expenseId} {
+      allow read: if isGroupMember(resource.data.groupId);
+      allow create: if isAuthenticated() && 
+        isGroupMember(request.resource.data.groupId) &&
+        request.auth.uid == request.resource.data.createdBy;
+      allow update: if isGroupMember(resource.data.groupId) && 
+        // Only expense creator can update their own expenses
+        request.auth.uid == resource.data.createdBy;
+      allow delete: if isGroupMember(resource.data.groupId) && 
+        // Only expense creator can delete their own expenses
+        request.auth.uid == resource.data.createdBy;
+    }
+
+    // Settlements collection - only involved users and group members can access
+    match /settlements/{settlementId} {
+      allow read: if isGroupMember(resource.data.groupId);
+      allow create: if isAuthenticated() && 
+        isGroupMember(request.resource.data.groupId) &&
+        // Only the person paying can create a settlement
+        request.auth.uid == request.resource.data.fromUserId;
+      allow update: if false; // Settlements are immutable once created
+      allow delete: if false; // Settlements cannot be deleted for audit purposes
+    }
+
+    // Balances collection - computed data, only group members can read
+    match /balances/{balanceId} {
+      allow read: if isGroupMember(resource.data.groupId);
+      allow write: if false; // Balances are computed server-side only
+    }
+
+    // Group invitations subcollection
+    match /groups/{groupId}/invitations/{invitationId} {
+      allow read: if isGroupMember(groupId) || 
+        // Allow invited user to read their own invitation
+        request.auth.token.email == resource.data.email;
+      allow create: if isGroupCreator(groupId);
+      allow update: if isGroupCreator(groupId) || 
+        // Allow invited user to accept/decline
+        request.auth.token.email == resource.data.email;
+      allow delete: if isGroupCreator(groupId);
+    }
+  }
+}
