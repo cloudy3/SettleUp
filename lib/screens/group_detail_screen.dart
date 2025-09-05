@@ -2,6 +2,8 @@ import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/material.dart";
 import "package:settle_up/models/models.dart";
 import "package:settle_up/services/services.dart";
+import "add_expense_screen.dart";
+import "expense_detail_screen.dart";
 
 class GroupDetailScreen extends StatefulWidget {
   final String groupId;
@@ -138,12 +140,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          // TODO: Navigate to Add Expense screen
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Add Expense feature coming soon!")),
-          );
-        },
+        onPressed: _navigateToAddExpense,
         label: const Text("Add Expense"),
         icon: const Icon(Icons.add),
       ),
@@ -303,9 +300,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
           "${expense.date.month}/${expense.date.day}",
           style: Theme.of(context).textTheme.bodySmall,
         ),
-        onTap: () {
-          // TODO: Navigate to expense detail screen
-        },
+        onTap: () => _navigateToExpenseDetail(expense),
       ),
     );
   }
@@ -713,5 +708,53 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
         ],
       ),
     );
+  }
+
+  Future<void> _navigateToAddExpense() async {
+    if (_group == null || _members.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Group data not loaded yet'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) =>
+            AddExpenseScreen(groupId: widget.groupId, groupMembers: _members),
+      ),
+    );
+
+    if (result == true) {
+      // Expense was added successfully, refresh data if needed
+      _loadGroupData();
+    }
+  }
+
+  Future<void> _navigateToExpenseDetail(Expense expense) async {
+    if (_members.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Group members not loaded yet'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) =>
+            ExpenseDetailScreen(expenseId: expense.id, groupMembers: _members),
+      ),
+    );
+
+    if (result == true) {
+      // Expense was updated or deleted, refresh data if needed
+      _loadGroupData();
+    }
   }
 }

@@ -54,7 +54,7 @@
   - Add navigation between group screens
   - _Requirements: 1.1, 1.2, 1.3, 1.5, 2.1, 2.2_
 
-- [ ] 8. Implement expense management UI
+- [x] 8. Implement expense management UI
 
   - Create AddExpenseScreen with amount input, description, and split configuration
   - Build ExpenseDetailScreen showing split breakdown and edit options
