@@ -38,7 +38,7 @@
   - Write unit tests for balance calculations and debt optimization
   - _Requirements: 4.4, 4.5, 5.1, 5.2, 5.3, 5.4, 5.5, 5.6_
 
-- [ ] 6. Create settlement functionality
+- [x] 6. Create settlement functionality
 
   - Implement settlement recording in BalanceService
   - Add settlement history tracking and balance updates

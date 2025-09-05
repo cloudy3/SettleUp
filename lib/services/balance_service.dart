@@ -3,8 +3,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../models/models.dart';
+import 'notification_service.dart';
 
 class BalanceService {
+  final NotificationService _notificationService;
+
+  BalanceService({NotificationService? notificationService})
+    : _notificationService = notificationService ?? NotificationService();
+
   // Protected getters for testing
   @protected
   FirebaseFirestore get firestore => FirebaseFirestore.instance;
@@ -198,6 +204,23 @@ class BalanceService {
     // Save settlement to Firestore
     await _settlementsCollection.doc(settlementId).set(settlement.toJson());
 
+    // Send notifications
+    try {
+      final fromUserName = await _getUserName(settlement.fromUserId);
+      final toUserName = await _getUserName(settlement.toUserId);
+      final group = await _getGroup(groupId);
+
+      await _notificationService.sendSettlementNotification(
+        settlement: settlement,
+        fromUserName: fromUserName,
+        toUserName: toUserName,
+        groupName: group.name,
+      );
+    } catch (e) {
+      // Log notification error but don't fail the settlement
+      debugPrint('Failed to send settlement notification: $e');
+    }
+
     return settlement;
   }
 
@@ -366,6 +389,20 @@ class BalanceService {
     final group = await _getGroup(groupId);
     if (!group.memberIds.contains(userId)) {
       throw Exception('User is not a member of this group');
+    }
+  }
+
+  /// Gets user name by user ID (helper method for notifications)
+  Future<String> _getUserName(String userId) async {
+    try {
+      final userDoc = await firestore.collection('Users').doc(userId).get();
+      if (userDoc.exists) {
+        final userData = userDoc.data() as Map<String, dynamic>;
+        return userData['name'] ?? userData['email'] ?? 'Unknown User';
+      }
+      return 'Unknown User';
+    } catch (e) {
+      return 'Unknown User';
     }
   }
 }
