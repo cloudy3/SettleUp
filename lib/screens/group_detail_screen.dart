@@ -484,7 +484,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
                 label: const Text("Creator"),
                 backgroundColor: Theme.of(
                   context,
-                ).primaryColor.withOpacity(0.1),
+                ).primaryColor.withValues(alpha: 0.1),
               )
             : null,
       ),
@@ -558,14 +558,16 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
             onPressed: () async {
               final email = emailController.text.trim();
               if (email.isNotEmpty) {
+                final navigator = Navigator.of(context);
+                final scaffoldMessenger = ScaffoldMessenger.of(context);
                 try {
                   await _groupService.inviteMembers(
                     groupId: widget.groupId,
                     emails: [email],
                   );
                   if (mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    navigator.pop();
+                    scaffoldMessenger.showSnackBar(
                       SnackBar(
                         content: Text("Invitation sent to $email"),
                         backgroundColor: Colors.green,
@@ -575,7 +577,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
                   }
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    scaffoldMessenger.showSnackBar(
                       SnackBar(
                         content: Text("Failed to send invitation: $e"),
                         backgroundColor: Colors.red,
@@ -624,6 +626,8 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
           ),
           ElevatedButton(
             onPressed: () async {
+              final navigator = Navigator.of(context);
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
               try {
                 await _groupService.updateGroup(
                   groupId: widget.groupId,
@@ -631,8 +635,8 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
                   description: descriptionController.text.trim(),
                 );
                 if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  navigator.pop();
+                  scaffoldMessenger.showSnackBar(
                     const SnackBar(
                       content: Text("Group updated successfully"),
                       backgroundColor: Colors.green,
@@ -642,7 +646,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     SnackBar(
                       content: Text("Failed to update group: $e"),
                       backgroundColor: Colors.red,
@@ -675,6 +679,8 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
           ),
           ElevatedButton(
             onPressed: () async {
+              final navigator = Navigator.of(context);
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
               try {
                 await _balanceService.recordSettlement(
                   groupId: widget.groupId,
@@ -683,8 +689,8 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
                   amount: amount,
                 );
                 if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  navigator.pop();
+                  scaffoldMessenger.showSnackBar(
                     SnackBar(
                       content: Text("Settlement recorded with $memberName"),
                       backgroundColor: Colors.green,
@@ -693,7 +699,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     SnackBar(
                       content: Text("Failed to record settlement: $e"),
                       backgroundColor: Colors.red,

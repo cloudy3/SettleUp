@@ -288,7 +288,7 @@ class ExpenseService {
     final amounts = split.calculateAmounts(totalAmount);
     final calculatedTotal = amounts.values.fold(
       0.0,
-      (sum, amount) => sum + amount,
+      (total, amount) => total + amount,
     );
 
     // Allow small floating point differences

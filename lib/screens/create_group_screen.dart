@@ -74,10 +74,10 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
         width: 100,
         height: 100,
         decoration: BoxDecoration(
-          color: Theme.of(context).primaryColor.withOpacity(0.1),
+          color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
           shape: BoxShape.circle,
           border: Border.all(
-            color: Theme.of(context).primaryColor.withOpacity(0.3),
+            color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
             width: 2,
           ),
         ),
@@ -164,7 +164,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
 
   Widget _buildHelpText() {
     return Card(
-      color: Theme.of(context).colorScheme.surfaceVariant,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
