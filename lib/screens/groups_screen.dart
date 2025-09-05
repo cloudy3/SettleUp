@@ -36,10 +36,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text("Overall, you are owed "),
-                    IconButton(
-                      onPressed: () {},
-                      icon: const Icon(Icons.tune),
-                    ),
+                    IconButton(onPressed: () {}, icon: const Icon(Icons.tune)),
                   ],
                 ),
               ),
@@ -53,8 +50,10 @@ class _GroupsScreenState extends State<GroupsScreen> {
                   final imageUrl = group["imageUrl"] ?? ""; // Group image URL
 
                   return ListTile(
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     leading: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: imageUrl.isNotEmpty
@@ -68,8 +67,11 @@ class _GroupsScreenState extends State<GroupsScreen> {
                               width: 60,
                               height: 60,
                               color: Colors.grey.shade300,
-                              child: const Icon(Icons.group,
-                                  size: 30, color: Colors.white),
+                              child: const Icon(
+                                Icons.group,
+                                size: 30,
+                                color: Colors.white,
+                              ),
                             ),
                     ),
                     title: Text(
@@ -88,11 +90,8 @@ class _GroupsScreenState extends State<GroupsScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => GroupDetailsScreen(
-                            groupId: group.id,
-                            groupName: groupName,
-                            imageUrl: imageUrl,
-                          ),
+                          builder: (context) =>
+                              GroupDetailScreen(groupId: group.id),
                         ),
                       );
                     },

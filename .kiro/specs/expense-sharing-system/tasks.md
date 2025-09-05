@@ -46,7 +46,7 @@
   - Write unit tests for settlement operations
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6_
 
-- [ ] 7. Build group management UI screens
+- [x] 7. Build group management UI screens
 
   - Create GroupListScreen to display user's groups with balance previews
   - Implement CreateGroupScreen with form validation

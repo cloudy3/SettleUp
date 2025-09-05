@@ -2,7 +2,7 @@ import "package:cloud_firestore/cloud_firestore.dart";
 import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/material.dart";
 import "package:settle_up/screens/account_screen.dart";
-import "package:settle_up/screens/groups_screen.dart";
+import "package:settle_up/screens/group_list_screen.dart";
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,7 +16,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Pages for each tab
   final List<Widget> _pages = [
-    const GroupsScreen(),
+    const GroupListScreen(),
     const Center(child: Text("Friends Page")),
     const Center(child: Text("Activity Page")),
     const AccountScreen(),
@@ -28,8 +28,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Fetch user data from Firestore
   Future<void> fetchUserData(String userId) async {
-    final userDoc =
-        await FirebaseFirestore.instance.collection("Users").doc(userId).get();
+    final userDoc = await FirebaseFirestore.instance
+        .collection("Users")
+        .doc(userId)
+        .get();
 
     if (userDoc.exists) {
       setState(() {
@@ -86,8 +88,9 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(
             icon: CircleAvatar(
               radius: 12,
-              backgroundImage:
-                  AssetImage("$avatarName"), // Display the selected avatar
+              backgroundImage: AssetImage(
+                "$avatarName",
+              ), // Display the selected avatar
               backgroundColor: Colors.blue.shade100,
             ),
             label: "Account",
@@ -101,7 +104,12 @@ class _HomeScreenState extends State<HomeScreen> {
       floatingActionButton: _currentIndex == 0
           ? FloatingActionButton.extended(
               onPressed: () {
-                // Handle adding an expense
+                // TODO: Navigate to Add Expense screen
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("Add Expense feature coming soon!"),
+                  ),
+                );
               },
               label: const Text("Add Expense"),
               icon: const Icon(Icons.add),
