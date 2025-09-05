@@ -30,7 +30,7 @@
   - Write unit tests for expense operations and split calculations
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6_
 
-- [ ] 5. Implement BalanceService for debt calculations
+- [x] 5. Implement BalanceService for debt calculations
 
   - Create BalanceService to calculate net balances between group members
   - Implement debt simplification algorithm to minimize transactions
