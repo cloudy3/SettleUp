@@ -22,7 +22,7 @@
   - Write unit tests for all GroupService methods
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6_
 
-- [ ] 4. Create ExpenseService for expense management
+- [x] 4. Create ExpenseService for expense management
 
   - Implement ExpenseService with methods for adding, editing, and deleting expenses
   - Create expense splitting logic for equal, custom, and percentage splits
