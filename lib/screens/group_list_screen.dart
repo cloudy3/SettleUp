@@ -1,9 +1,10 @@
 import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/material.dart";
+import "package:provider/provider.dart";
 import "package:settle_up/models/group.dart";
 import "package:settle_up/models/balance.dart";
-import "package:settle_up/services/group_service.dart";
-import "package:settle_up/services/balance_service.dart";
+import "package:settle_up/services/services.dart";
+import "package:settle_up/providers/providers.dart";
 import "package:settle_up/screens/group_detail_screen.dart";
 import "package:settle_up/screens/create_group_screen.dart";
 
@@ -15,7 +16,6 @@ class GroupListScreen extends StatefulWidget {
 }
 
 class _GroupListScreenState extends State<GroupListScreen> {
-  final GroupService _groupService = GroupService();
   final BalanceService _balanceService = BalanceService();
   final String? _currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
@@ -25,56 +25,82 @@ class _GroupListScreenState extends State<GroupListScreen> {
       return const Center(child: Text("Please log in to view groups"));
     }
 
-    return Column(
-      children: [
-        _buildOverallBalanceHeader(),
-        Expanded(
-          child: StreamBuilder<List<Group>>(
-            stream: _groupService.getGroupsStream(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
+    return Consumer2<AppStateProvider, OfflineProvider>(
+      builder: (context, appState, offlineProvider, child) {
+        // Use cached data when offline
+        final groups = offlineProvider.isOnline
+            ? appState.groups
+            : offlineProvider.cachedGroups;
 
-              if (snapshot.hasError) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error, size: 64, color: Colors.red),
-                      const SizedBox(height: 16),
-                      Text("Error: ${snapshot.error}"),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () => setState(() {}),
-                        child: const Text("Retry"),
-                      ),
-                    ],
-                  ),
-                );
-              }
+        // Cache data when online
+        if (offlineProvider.isOnline && appState.groups.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            offlineProvider.cacheGroups(appState.groups);
+          });
+        }
 
-              final groups = snapshot.data ?? [];
-
-              if (groups.isEmpty) {
-                return _buildEmptyState();
-              }
-
-              return ListView.builder(
-                itemCount: groups.length,
-                itemBuilder: (context, index) {
-                  final group = groups[index];
-                  return _buildGroupCard(group);
-                },
-              );
-            },
-          ),
-        ),
-      ],
+        return Column(
+          children: [
+            _buildOverallBalanceHeader(appState, groups),
+            Expanded(
+              child: _buildGroupsList(
+                appState,
+                groups,
+                offlineProvider.isOnline,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildOverallBalanceHeader() {
+  Widget _buildGroupsList(
+    AppStateProvider appState,
+    List<Group> groups,
+    bool isOnline,
+  ) {
+    // Show loading only when online and actually loading
+    if (isOnline && appState.isLoadingGroups && groups.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    // Show error only when online
+    if (isOnline && appState.error != null && groups.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text("Error: ${appState.error}"),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => appState.refreshGroups(),
+              child: const Text("Retry"),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (groups.isEmpty) {
+      return _buildEmptyState(isOnline);
+    }
+
+    return ListView.builder(
+      itemCount: groups.length,
+      itemBuilder: (context, index) {
+        final group = groups[index];
+        return _buildGroupCard(group, isOnline);
+      },
+    );
+  }
+
+  Widget _buildOverallBalanceHeader(
+    AppStateProvider appState,
+    List<Group> groups,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -82,7 +108,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
         children: [
           Expanded(
             child: FutureBuilder<double>(
-              future: _calculateOverallBalance(),
+              future: _calculateOverallBalance(groups),
               builder: (context, snapshot) {
                 final balance = snapshot.data ?? 0.0;
                 final isOwed = balance > 0;
@@ -115,13 +141,18 @@ class _GroupListScreenState extends State<GroupListScreen> {
             ),
           ),
           IconButton(
-            onPressed: () {
-              Navigator.push(
+            onPressed: () async {
+              final result = await Navigator.push<bool>(
                 context,
                 MaterialPageRoute(
                   builder: (context) => const CreateGroupScreen(),
                 ),
               );
+
+              // Refresh groups if a new group was created
+              if (result == true) {
+                appState.refreshGroups();
+              }
             },
             icon: const Icon(Icons.add),
             tooltip: "Create Group",
@@ -131,7 +162,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(bool isOnline) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -170,7 +201,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
     );
   }
 
-  Widget _buildGroupCard(Group group) {
+  Widget _buildGroupCard(Group group, bool isOnline) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: ListTile(
@@ -244,7 +275,15 @@ class _GroupListScreenState extends State<GroupListScreen> {
             ),
           ],
         ),
-        trailing: const Icon(Icons.chevron_right),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!isOnline)
+              Icon(Icons.wifi_off, size: 16, color: Colors.grey.shade600),
+            const SizedBox(width: 8),
+            const Icon(Icons.chevron_right),
+          ],
+        ),
         onTap: () {
           Navigator.push(
             context,
@@ -257,9 +296,8 @@ class _GroupListScreenState extends State<GroupListScreen> {
     );
   }
 
-  Future<double> _calculateOverallBalance() async {
+  Future<double> _calculateOverallBalance(List<Group> groups) async {
     try {
-      final groups = await _groupService.getGroupsForUser();
       double totalBalance = 0.0;
 
       for (final group in groups) {

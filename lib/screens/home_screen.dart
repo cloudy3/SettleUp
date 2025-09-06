@@ -3,6 +3,9 @@ import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/material.dart";
 import "package:settle_up/screens/account_screen.dart";
 import "package:settle_up/screens/group_list_screen.dart";
+import "package:settle_up/widgets/notification_widget.dart";
+import "package:settle_up/widgets/offline_indicator.dart";
+import "package:settle_up/widgets/activity_feed_widget.dart";
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,7 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _pages = [
     const GroupListScreen(),
     const Center(child: Text("Friends Page")),
-    const Center(child: Text("Activity Page")),
+    const ActivityFeedWidget(),
     const AccountScreen(),
   ];
 
@@ -55,16 +58,14 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Settle Up"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none),
-            onPressed: () {
-              // Handle notifications
-            },
-          ),
+        actions: const [NotificationWidget()],
+      ),
+      body: Column(
+        children: [
+          const OfflineIndicator(),
+          Expanded(child: _pages[_currentIndex]),
         ],
       ),
-      body: _pages[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
