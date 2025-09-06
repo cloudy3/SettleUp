@@ -4,6 +4,7 @@ import "package:settle_up/models/models.dart";
 import "package:settle_up/services/services.dart";
 import "add_expense_screen.dart";
 import "expense_detail_screen.dart";
+import "balance_screen.dart";
 
 class GroupDetailScreen extends StatefulWidget {
   final String groupId;
@@ -307,16 +308,36 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
 
   Widget _buildBalanceSummaryCard(Balance balance) {
     return Card(
+      elevation: 4,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              "Your Balance",
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            Row(
+              children: [
+                Icon(
+                  Icons.account_balance_wallet,
+                  color: Theme.of(context).primaryColor,
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  "Your Balance",
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                TextButton.icon(
+                  onPressed: () => _navigateToBalanceScreen(),
+                  icon: const Icon(Icons.visibility, size: 18),
+                  label: const Text('View All'),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             if (balance.isSettledUp)
@@ -756,5 +777,24 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
       // Expense was updated or deleted, refresh data if needed
       _loadGroupData();
     }
+  }
+
+  Future<void> _navigateToBalanceScreen() async {
+    if (_members.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Group members not loaded yet'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) =>
+            BalanceScreen(groupId: widget.groupId, groupMembers: _members),
+      ),
+    );
   }
 }

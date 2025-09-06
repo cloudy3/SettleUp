@@ -62,7 +62,7 @@
   - Add expense list display in GroupDetailScreen
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.6, 4.1, 4.2, 4.3, 8.1, 8.2, 8.3_
 
-- [ ] 9. Create balance and settlement UI
+- [x] 9. Create balance and settlement UI
 
   - Build BalanceScreen showing who owes whom with color-coded amounts
   - Implement SettleUpScreen with settlement confirmation dialogs
