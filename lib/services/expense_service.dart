@@ -11,6 +11,8 @@ class ExpenseService {
   CollectionReference get _expensesCollection =>
       _firestore.collection('expenses');
   CollectionReference get _groupsCollection => _firestore.collection('groups');
+  CollectionReference get _auditCollection =>
+      _firestore.collection('expense_audits');
 
   /// Adds a new expense to a group
   Future<Expense> addExpense({
@@ -67,6 +69,15 @@ class ExpenseService {
 
     // Save expense to Firestore
     await _expensesCollection.doc(expenseId).set(expense.toJson());
+
+    // Create audit trail entry
+    await _createAuditEntry(
+      expenseId: expenseId,
+      groupId: groupId,
+      action: ExpenseAuditAction.created,
+      performedBy: currentUser.uid,
+      newData: expense.toJson(),
+    );
 
     // Update group's total expenses
     await _updateGroupTotalExpenses(groupId, amount);
@@ -145,6 +156,16 @@ class ExpenseService {
       'split': updatedExpense.split.toJson(),
     });
 
+    // Create audit trail entry
+    await _createAuditEntry(
+      expenseId: expenseId,
+      groupId: updatedExpense.groupId,
+      action: ExpenseAuditAction.updated,
+      performedBy: currentUser.uid,
+      previousData: originalExpense.toJson(),
+      newData: updatedExpense.toJson(),
+    );
+
     // Update group's total expenses if amount changed
     if (originalExpense.amount != updatedExpense.amount) {
       final difference = updatedExpense.amount - originalExpense.amount;
@@ -175,6 +196,15 @@ class ExpenseService {
 
     // Verify user is still a member of the group
     await _verifyGroupMembership(expense.groupId, currentUser.uid);
+
+    // Create audit trail entry before deletion
+    await _createAuditEntry(
+      expenseId: expenseId,
+      groupId: expense.groupId,
+      action: ExpenseAuditAction.deleted,
+      performedBy: currentUser.uid,
+      previousData: expense.toJson(),
+    );
 
     // Delete expense from Firestore
     await _expensesCollection.doc(expenseId).delete();
@@ -394,5 +424,76 @@ class ExpenseService {
     await _groupsCollection.doc(groupId).update({
       'totalExpenses': FieldValue.increment(amountChange),
     });
+  }
+
+  /// Creates an audit trail entry for expense operations
+  Future<void> _createAuditEntry({
+    required String expenseId,
+    required String groupId,
+    required ExpenseAuditAction action,
+    required String performedBy,
+    Map<String, dynamic>? previousData,
+    Map<String, dynamic>? newData,
+    String? reason,
+  }) async {
+    final auditId = _auditCollection.doc().id;
+    final audit = ExpenseAudit(
+      id: auditId,
+      expenseId: expenseId,
+      groupId: groupId,
+      action: action,
+      performedBy: performedBy,
+      performedAt: DateTime.now(),
+      previousData: previousData,
+      newData: newData,
+      reason: reason,
+    );
+
+    await _auditCollection.doc(auditId).set(audit.toJson());
+  }
+
+  /// Gets audit trail for a specific expense
+  Future<List<ExpenseAudit>> getExpenseAuditTrail(String expenseId) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      throw Exception('User must be authenticated to fetch audit trail');
+    }
+
+    final querySnapshot = await _auditCollection
+        .where('expenseId', isEqualTo: expenseId)
+        .orderBy('performedAt', descending: true)
+        .get();
+
+    final audits = querySnapshot.docs
+        .map((doc) => ExpenseAudit.fromJson(doc.data() as Map<String, dynamic>))
+        .toList();
+
+    // Verify user has access to the expense's group
+    if (audits.isNotEmpty) {
+      await _verifyGroupMembership(audits.first.groupId, currentUser.uid);
+    }
+
+    return audits;
+  }
+
+  /// Gets audit trail for a group
+  Future<List<ExpenseAudit>> getGroupAuditTrail(String groupId) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      throw Exception('User must be authenticated to fetch audit trail');
+    }
+
+    // Verify user is a member of the group
+    await _verifyGroupMembership(groupId, currentUser.uid);
+
+    final querySnapshot = await _auditCollection
+        .where('groupId', isEqualTo: groupId)
+        .orderBy('performedAt', descending: true)
+        .limit(100) // Limit to recent 100 entries
+        .get();
+
+    return querySnapshot.docs
+        .map((doc) => ExpenseAudit.fromJson(doc.data() as Map<String, dynamic>))
+        .toList();
   }
 }

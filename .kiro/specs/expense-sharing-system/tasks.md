@@ -86,7 +86,7 @@
   - Add member removal functionality for group creators
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6_
 
-- [ ] 12. Implement expense editing and deletion
+- [x] 12. Implement expense editing and deletion
 
   - Add edit expense functionality with pre-filled forms
   - Create delete confirmation dialogs with balance recalculation

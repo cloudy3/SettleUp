@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/models.dart';
 import '../services/services.dart';
 import 'edit_expense_screen.dart';
+import 'expense_audit_screen.dart';
 
 class ExpenseDetailScreen extends StatefulWidget {
   final String expenseId;
@@ -86,6 +87,11 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
       appBar: AppBar(
         title: const Text('Expense Details'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            onPressed: _viewAuditTrail,
+            tooltip: 'View History',
+          ),
           if (canEdit) ...[
             IconButton(icon: const Icon(Icons.edit), onPressed: _editExpense),
             PopupMenuButton<String>(
@@ -526,13 +532,52 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
     }
   }
 
+  void _viewAuditTrail() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ExpenseAuditScreen(
+          expenseId: widget.expenseId,
+          groupMembers: widget.groupMembers,
+        ),
+      ),
+    );
+  }
+
   void _showDeleteConfirmation() {
+    final participantAmounts = _expense!.participantAmounts;
+    final affectedMembers = participantAmounts.keys
+        .map((id) => _getMemberName(id))
+        .join(', ');
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Expense'),
-        content: Text(
-          'Are you sure you want to delete "${_expense!.description}"? This action cannot be undone and will affect all group balances.',
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to delete "${_expense!.description}"?',
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'This action will:',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '• Remove the \$${_expense!.amount.toStringAsFixed(2)} expense',
+            ),
+            Text('• Recalculate balances for: $affectedMembers'),
+            const Text('• Create an audit trail entry'),
+            const SizedBox(height: 12),
+            const Text(
+              'This action cannot be undone.',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
+            ),
+          ],
         ),
         actions: [
           TextButton(

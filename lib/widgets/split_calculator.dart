@@ -6,14 +6,16 @@ class SplitCalculator extends StatefulWidget {
   final double totalAmount;
   final List<Map<String, dynamic>> groupMembers;
   final ExpenseSplit initialSplit;
-  final Function(ExpenseSplit) onSplitChanged;
+  final Function(ExpenseSplit)? onSplitChanged;
+  final bool readOnly;
 
   const SplitCalculator({
     super.key,
     required this.totalAmount,
     required this.groupMembers,
     required this.initialSplit,
-    required this.onSplitChanged,
+    this.onSplitChanged,
+    this.readOnly = false,
   });
 
   @override
@@ -89,6 +91,9 @@ class _SplitCalculatorState extends State<SplitCalculator>
         children: [
           TabBar(
             controller: _tabController,
+            physics: widget.readOnly
+                ? const NeverScrollableScrollPhysics()
+                : null,
             tabs: const [
               Tab(text: 'Equal'),
               Tab(text: 'Custom'),
@@ -99,6 +104,9 @@ class _SplitCalculatorState extends State<SplitCalculator>
             height: 400,
             child: TabBarView(
               controller: _tabController,
+              physics: widget.readOnly
+                  ? const NeverScrollableScrollPhysics()
+                  : null,
               children: [
                 _buildEqualSplitTab(),
                 _buildCustomSplitTab(),
@@ -136,16 +144,18 @@ class _SplitCalculatorState extends State<SplitCalculator>
 
                 return CheckboxListTile(
                   value: isSelected,
-                  onChanged: (value) {
-                    setState(() {
-                      if (value == true) {
-                        _selectedParticipants.add(memberId);
-                      } else {
-                        _selectedParticipants.remove(memberId);
-                      }
-                      _updateEqualSplit();
-                    });
-                  },
+                  onChanged: widget.readOnly
+                      ? null
+                      : (value) {
+                          setState(() {
+                            if (value == true) {
+                              _selectedParticipants.add(memberId);
+                            } else {
+                              _selectedParticipants.remove(memberId);
+                            }
+                            _updateEqualSplit();
+                          });
+                        },
                   title: Row(
                     children: [
                       CircleAvatar(
@@ -235,17 +245,19 @@ class _SplitCalculatorState extends State<SplitCalculator>
                       children: [
                         Checkbox(
                           value: isParticipant,
-                          onChanged: (value) {
-                            setState(() {
-                              if (value == true) {
-                                _selectedParticipants.add(memberId);
-                              } else {
-                                _selectedParticipants.remove(memberId);
-                                controller.clear();
-                              }
-                              _updateCustomSplit();
-                            });
-                          },
+                          onChanged: widget.readOnly
+                              ? null
+                              : (value) {
+                                  setState(() {
+                                    if (value == true) {
+                                      _selectedParticipants.add(memberId);
+                                    } else {
+                                      _selectedParticipants.remove(memberId);
+                                      controller.clear();
+                                    }
+                                    _updateCustomSplit();
+                                  });
+                                },
                         ),
                         CircleAvatar(
                           radius: 16,
@@ -274,7 +286,7 @@ class _SplitCalculatorState extends State<SplitCalculator>
                         Expanded(
                           child: TextFormField(
                             controller: controller,
-                            enabled: isParticipant,
+                            enabled: isParticipant && !widget.readOnly,
                             decoration: const InputDecoration(
                               prefixText: '\$',
                               hintText: '0.00',
@@ -336,17 +348,19 @@ class _SplitCalculatorState extends State<SplitCalculator>
                       children: [
                         Checkbox(
                           value: isParticipant,
-                          onChanged: (value) {
-                            setState(() {
-                              if (value == true) {
-                                _selectedParticipants.add(memberId);
-                              } else {
-                                _selectedParticipants.remove(memberId);
-                                controller.clear();
-                              }
-                              _updatePercentageSplit();
-                            });
-                          },
+                          onChanged: widget.readOnly
+                              ? null
+                              : (value) {
+                                  setState(() {
+                                    if (value == true) {
+                                      _selectedParticipants.add(memberId);
+                                    } else {
+                                      _selectedParticipants.remove(memberId);
+                                      controller.clear();
+                                    }
+                                    _updatePercentageSplit();
+                                  });
+                                },
                         ),
                         CircleAvatar(
                           radius: 16,
@@ -375,7 +389,7 @@ class _SplitCalculatorState extends State<SplitCalculator>
                         Expanded(
                           child: TextFormField(
                             controller: controller,
-                            enabled: isParticipant,
+                            enabled: isParticipant && !widget.readOnly,
                             decoration: const InputDecoration(
                               suffixText: '%',
                               hintText: '0',
@@ -531,7 +545,7 @@ class _SplitCalculatorState extends State<SplitCalculator>
           for (String participant in _selectedParticipants) participant: 1.0,
         },
       );
-      widget.onSplitChanged(_currentSplit);
+      widget.onSplitChanged?.call(_currentSplit);
     } catch (e) {
       // Handle error silently or show user feedback
     }
@@ -555,7 +569,7 @@ class _SplitCalculatorState extends State<SplitCalculator>
         participants: customAmounts.keys.toList(),
         shares: customAmounts,
       );
-      widget.onSplitChanged(_currentSplit);
+      widget.onSplitChanged?.call(_currentSplit);
     } catch (e) {
       // Handle error silently or show user feedback
     }
@@ -580,7 +594,7 @@ class _SplitCalculatorState extends State<SplitCalculator>
         participants: percentages.keys.toList(),
         shares: percentages,
       );
-      widget.onSplitChanged(_currentSplit);
+      widget.onSplitChanged?.call(_currentSplit);
     } catch (e) {
       // Handle error silently or show user feedback
     }

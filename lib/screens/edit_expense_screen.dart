@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/models.dart';
 import '../services/services.dart';
 import '../widgets/split_calculator.dart';
@@ -54,12 +55,15 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final canEdit = widget.expense.createdBy == currentUserId;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Expense'),
         actions: [
           TextButton(
-            onPressed: _isLoading ? null : _saveExpense,
+            onPressed: (_isLoading || !canEdit) ? null : _saveExpense,
             child: _isLoading
                 ? const SizedBox(
                     width: 20,
@@ -77,6 +81,7 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (!canEdit) _buildPermissionWarning(),
               _buildDescriptionField(),
               const SizedBox(height: 16),
               _buildAmountField(),
@@ -93,9 +98,37 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
     );
   }
 
+  Widget _buildPermissionWarning() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.orange.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.orange),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.warning, color: Colors.orange),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'You can only edit expenses that you created. This expense is read-only.',
+              style: TextStyle(color: Colors.orange),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDescriptionField() {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final canEdit = widget.expense.createdBy == currentUserId;
+
     return TextFormField(
       controller: _descriptionController,
+      enabled: canEdit,
       decoration: const InputDecoration(
         labelText: 'Description',
         hintText: 'What was this expense for?',
@@ -113,8 +146,12 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
   }
 
   Widget _buildAmountField() {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final canEdit = widget.expense.createdBy == currentUserId;
+
     return TextFormField(
       controller: _amountController,
+      enabled: canEdit,
       decoration: const InputDecoration(
         labelText: 'Amount',
         hintText: '0.00',
@@ -144,6 +181,9 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
   }
 
   Widget _buildPayerSelector() {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final canEdit = widget.expense.createdBy == currentUserId;
+
     return DropdownButtonFormField<String>(
       value: _selectedPayer,
       decoration: const InputDecoration(
@@ -183,25 +223,32 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
         }
         return null;
       },
-      onChanged: (value) {
-        setState(() {
-          _selectedPayer = value!;
-        });
-      },
+      onChanged: canEdit
+          ? (value) {
+              setState(() {
+                _selectedPayer = value!;
+              });
+            }
+          : null,
     );
   }
 
   Widget _buildDateSelector() {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final canEdit = widget.expense.createdBy == currentUserId;
+
     return InkWell(
-      onTap: _selectDate,
+      onTap: canEdit ? _selectDate : null,
       child: InputDecorator(
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           labelText: 'Date',
-          border: OutlineInputBorder(),
-          prefixIcon: Icon(Icons.calendar_today),
+          border: const OutlineInputBorder(),
+          prefixIcon: const Icon(Icons.calendar_today),
+          enabled: canEdit,
         ),
         child: Text(
           '${_selectedDate.month}/${_selectedDate.day}/${_selectedDate.year}',
+          style: TextStyle(color: canEdit ? null : Colors.grey),
         ),
       ),
     );
@@ -209,6 +256,8 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
 
   Widget _buildSplitSection() {
     final amount = double.tryParse(_amountController.text) ?? 0.0;
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final canEdit = widget.expense.createdBy == currentUserId;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,11 +273,14 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
           totalAmount: amount,
           groupMembers: widget.groupMembers,
           initialSplit: _expenseSplit,
-          onSplitChanged: (split) {
-            setState(() {
-              _expenseSplit = split;
-            });
-          },
+          readOnly: !canEdit,
+          onSplitChanged: canEdit
+              ? (split) {
+                  setState(() {
+                    _expenseSplit = split;
+                  });
+                }
+              : null,
         ),
       ],
     );
