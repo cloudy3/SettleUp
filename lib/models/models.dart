@@ -5,3 +5,4 @@ export 'balance.dart';
 export 'settlement.dart';
 export 'notification.dart';
 export 'expense_audit.dart';
+export 'app_error.dart';

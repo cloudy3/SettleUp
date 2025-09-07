@@ -2,8 +2,12 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/group.dart';
+import '../models/app_error.dart';
+import '../utils/retry_mechanism.dart';
+import 'error_handling_service.dart';
+import 'offline_manager.dart';
 
-class GroupService {
+class GroupService with ErrorHandlingMixin {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -16,43 +20,58 @@ class GroupService {
     required String name,
     required String description,
   }) async {
-    final currentUser = _auth.currentUser;
-    if (currentUser == null) {
-      throw Exception('User must be authenticated to create a group');
-    }
+    return await executeWithErrorHandling<Group>(
+      operation: () async {
+        final currentUser = _auth.currentUser;
+        if (currentUser == null) {
+          throw AuthenticationError.notSignedIn();
+        }
 
-    if (name.trim().isEmpty) {
-      throw ArgumentError('Group name cannot be empty');
-    }
+        if (name.trim().isEmpty) {
+          throw ValidationError.required('Group name');
+        }
 
-    final now = DateTime.now();
-    final groupId = _groupsCollection.doc().id;
+        final now = DateTime.now();
+        final groupId = _groupsCollection.doc().id;
 
-    final group = Group(
-      id: groupId,
-      name: name.trim(),
-      description: description.trim(),
-      createdBy: currentUser.uid,
-      createdAt: now,
-      memberIds: [currentUser.uid],
-      pendingInvitations: [],
-      totalExpenses: 0.0,
+        final group = Group(
+          id: groupId,
+          name: name.trim(),
+          description: description.trim(),
+          createdBy: currentUser.uid,
+          createdAt: now,
+          memberIds: [currentUser.uid],
+          pendingInvitations: [],
+          totalExpenses: 0.0,
+        );
+
+        // Validate the group before saving
+        if (!group.isValid) {
+          throw ValidationError(
+            message: 'Invalid group data',
+            code: 'INVALID_GROUP_DATA',
+          );
+        }
+
+        // Save group to Firestore
+        await _groupsCollection.doc(groupId).set(group.toJson());
+
+        // Update user's groups list
+        await _usersCollection.doc(currentUser.uid).update({
+          'groups': FieldValue.arrayUnion([groupId]),
+        });
+
+        return group;
+      },
+      operationName: 'createGroup',
+      retryConfig: RetryConfig.conservative,
+      offlineAction: OfflineAction(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        type: OfflineActionType.createGroup,
+        data: {'name': name.trim(), 'description': description.trim()},
+        timestamp: DateTime.now(),
+      ),
     );
-
-    // Validate the group before saving
-    if (!group.isValid) {
-      throw ArgumentError('Invalid group data');
-    }
-
-    // Save group to Firestore
-    await _groupsCollection.doc(groupId).set(group.toJson());
-
-    // Update user's groups list
-    await _usersCollection.doc(currentUser.uid).update({
-      'groups': FieldValue.arrayUnion([groupId]),
-    });
-
-    return group;
   }
 
   /// Updates an existing group (only creator can update)
@@ -97,18 +116,25 @@ class GroupService {
 
   /// Fetches all groups for the current user
   Future<List<Group>> getGroupsForUser() async {
-    final currentUser = _auth.currentUser;
-    if (currentUser == null) {
-      throw Exception('User must be authenticated to fetch groups');
-    }
+    return await executeWithErrorHandling<List<Group>>(
+      operation: () async {
+        final currentUser = _auth.currentUser;
+        if (currentUser == null) {
+          throw AuthenticationError.notSignedIn();
+        }
 
-    final querySnapshot = await _groupsCollection
-        .where('memberIds', arrayContains: currentUser.uid)
-        .get();
+        final querySnapshot = await _groupsCollection
+            .where('memberIds', arrayContains: currentUser.uid)
+            .get();
 
-    return querySnapshot.docs
-        .map((doc) => Group.fromJson(doc.data() as Map<String, dynamic>))
-        .toList();
+        return querySnapshot.docs
+            .map((doc) => Group.fromJson(doc.data() as Map<String, dynamic>))
+            .toList();
+      },
+      operationName: 'getGroupsForUser',
+      retryConfig: RetryConfig.network,
+      fallbackValue: [], // Return empty list if offline
+    );
   }
 
   /// Fetches a specific group by ID
