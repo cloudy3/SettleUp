@@ -78,7 +78,7 @@
   - Add offline support with local caching
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [ ] 11. Add invitation and member management features
+- [x] 11. Add invitation and member management features
 
   - Create invitation sending functionality with email integration
   - Build invitation acceptance/decline UI flow

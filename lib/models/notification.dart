@@ -40,6 +40,131 @@ abstract class AppNotification {
   }
 }
 
+/// Group invitation notification
+class GroupInvitationNotification extends AppNotification {
+  final String groupId;
+  final String groupName;
+  final String invitedBy;
+
+  const GroupInvitationNotification({
+    required super.id,
+    required super.userId,
+    required super.type,
+    required super.title,
+    required super.message,
+    required super.createdAt,
+    required super.isRead,
+    super.readAt,
+    required this.groupId,
+    required this.groupName,
+    required this.invitedBy,
+  });
+
+  @override
+  bool get isValid {
+    return super.isValid &&
+        groupId.isNotEmpty &&
+        groupName.isNotEmpty &&
+        invitedBy.isNotEmpty;
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'userId': userId,
+      'type': type.name,
+      'title': title,
+      'message': message,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'isRead': isRead,
+      'readAt': readAt != null ? Timestamp.fromDate(readAt!) : null,
+      'groupId': groupId,
+      'groupName': groupName,
+      'invitedBy': invitedBy,
+    };
+  }
+
+  factory GroupInvitationNotification.fromJson(Map<String, dynamic> json) {
+    return GroupInvitationNotification(
+      id: json['id'] ?? '',
+      userId: json['userId'] ?? '',
+      type: NotificationType.values.firstWhere(
+        (e) => e.name == json['type'],
+        orElse: () => NotificationType.groupInvitation,
+      ),
+      title: json['title'] ?? '',
+      message: json['message'] ?? '',
+      createdAt: (json['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      isRead: json['isRead'] ?? false,
+      readAt: (json['readAt'] as Timestamp?)?.toDate(),
+      groupId: json['groupId'] ?? '',
+      groupName: json['groupName'] ?? '',
+      invitedBy: json['invitedBy'] ?? '',
+    );
+  }
+
+  GroupInvitationNotification copyWith({
+    String? id,
+    String? userId,
+    NotificationType? type,
+    String? title,
+    String? message,
+    DateTime? createdAt,
+    bool? isRead,
+    DateTime? readAt,
+    String? groupId,
+    String? groupName,
+    String? invitedBy,
+  }) {
+    return GroupInvitationNotification(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      type: type ?? this.type,
+      title: title ?? this.title,
+      message: message ?? this.message,
+      createdAt: createdAt ?? this.createdAt,
+      isRead: isRead ?? this.isRead,
+      readAt: readAt ?? this.readAt,
+      groupId: groupId ?? this.groupId,
+      groupName: groupName ?? this.groupName,
+      invitedBy: invitedBy ?? this.invitedBy,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is GroupInvitationNotification &&
+        other.id == id &&
+        other.userId == userId &&
+        other.type == type &&
+        other.title == title &&
+        other.message == message &&
+        other.createdAt == createdAt &&
+        other.isRead == isRead &&
+        other.readAt == readAt &&
+        other.groupId == groupId &&
+        other.groupName == groupName &&
+        other.invitedBy == invitedBy;
+  }
+
+  @override
+  int get hashCode {
+    return id.hashCode ^
+        userId.hashCode ^
+        type.hashCode ^
+        title.hashCode ^
+        message.hashCode ^
+        createdAt.hashCode ^
+        isRead.hashCode ^
+        readAt.hashCode ^
+        groupId.hashCode ^
+        groupName.hashCode ^
+        invitedBy.hashCode;
+  }
+}
+
 /// Settlement-specific notification
 class SettlementNotification extends AppNotification {
   final String settlementId;

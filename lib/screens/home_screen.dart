@@ -3,6 +3,8 @@ import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/material.dart";
 import "package:settle_up/screens/account_screen.dart";
 import "package:settle_up/screens/group_list_screen.dart";
+import "package:settle_up/screens/invitation_screen.dart";
+import "package:settle_up/services/group_service.dart";
 import "package:settle_up/widgets/notification_widget.dart";
 import "package:settle_up/widgets/offline_indicator.dart";
 import "package:settle_up/widgets/activity_feed_widget.dart";
@@ -16,6 +18,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0; // Track the selected tab index
+  final GroupService _groupService = GroupService();
+  int _pendingInvitationsCount = 0;
 
   // Pages for each tab
   final List<Widget> _pages = [
@@ -45,12 +49,32 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // Fetch pending invitations count
+  Future<void> _fetchPendingInvitationsCount() async {
+    try {
+      final invitations = await _groupService.getPendingInvitations();
+      if (mounted) {
+        setState(() {
+          _pendingInvitationsCount = invitations.length;
+        });
+      }
+    } catch (e) {
+      // Silently handle errors for invitation count
+      if (mounted) {
+        setState(() {
+          _pendingInvitationsCount = 0;
+        });
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     String userId =
         FirebaseAuth.instance.currentUser!.uid; // Get current user ID
     fetchUserData(userId);
+    _fetchPendingInvitationsCount();
   }
 
   @override
@@ -58,7 +82,50 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Settle Up"),
-        actions: const [NotificationWidget()],
+        actions: [
+          // Invitations button with badge
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.mail_outline),
+                onPressed: () async {
+                  final result = await Navigator.of(context).push<bool>(
+                    MaterialPageRoute(
+                      builder: (context) => const InvitationScreen(),
+                    ),
+                  );
+                  // Refresh invitation count after returning
+                  if (result == true || result == null) {
+                    _fetchPendingInvitationsCount();
+                  }
+                },
+                tooltip: 'Group Invitations',
+              ),
+              if (_pendingInvitationsCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    child: Text(
+                      '$_pendingInvitationsCount',
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const NotificationWidget(),
+        ],
       ),
       body: Column(
         children: [

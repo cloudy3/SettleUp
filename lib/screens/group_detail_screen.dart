@@ -5,6 +5,7 @@ import "package:settle_up/models/models.dart";
 import "package:settle_up/providers/providers.dart";
 import "add_expense_screen.dart";
 import "expense_detail_screen.dart";
+import "member_management_screen.dart";
 
 class GroupDetailScreen extends StatefulWidget {
   final String groupId;
@@ -496,19 +497,66 @@ class _MembersTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final members = groupProvider.members;
     final group = groupProvider.group!;
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final isCreator = group.createdBy == currentUserId;
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: members.length + (group.pendingInvitations.isNotEmpty ? 1 : 0),
-      itemBuilder: (context, index) {
-        if (index < members.length) {
-          final member = members[index];
-          return _MemberCard(member: member, group: group);
-        } else {
-          return _PendingInvitationsCard(group: group);
-        }
-      },
+    return Column(
+      children: [
+        // Header with manage members button
+        if (isOnline)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            child: ElevatedButton.icon(
+              onPressed: () => _navigateToMemberManagement(context, group),
+              icon: const Icon(Icons.settings),
+              label: const Text('Manage Members'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).primaryColor,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ),
+
+        // Members list
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount:
+                members.length + (group.pendingInvitations.isNotEmpty ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (index < members.length) {
+                final member = members[index];
+                return _MemberCard(
+                  member: member,
+                  group: group,
+                  showRemoveOption: isCreator && isOnline,
+                );
+              } else {
+                return _PendingInvitationsCard(group: group);
+              }
+            },
+          ),
+        ),
+      ],
     );
+  }
+
+  Future<void> _navigateToMemberManagement(
+    BuildContext context,
+    Group group,
+  ) async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) =>
+            MemberManagementScreen(groupId: group.id, group: group),
+      ),
+    );
+
+    // If changes were made, the GroupProvider will automatically update via real-time listeners
+    if (result == true) {
+      // Optional: Show a success message or refresh indicator
+    }
   }
 }
 
@@ -833,12 +881,19 @@ class _BalancesList extends StatelessWidget {
 class _MemberCard extends StatelessWidget {
   final Map<String, dynamic> member;
   final Group group;
+  final bool showRemoveOption;
 
-  const _MemberCard({required this.member, required this.group});
+  const _MemberCard({
+    required this.member,
+    required this.group,
+    this.showRemoveOption = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     final isCreator = member['id'] == group.createdBy;
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final isCurrentUser = member['id'] == currentUserId;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -846,20 +901,79 @@ class _MemberCard extends StatelessWidget {
         leading: CircleAvatar(
           backgroundColor: Theme.of(context).primaryColor,
           child: Text(
-            member['name'].isNotEmpty ? member['name'][0].toUpperCase() : "?",
+            (member['name']?.isNotEmpty == true
+                    ? member['name'][0]
+                    : member['email'][0])
+                .toUpperCase(),
             style: const TextStyle(color: Colors.white),
           ),
         ),
         title: Text(member['name'] ?? member['email']),
-        subtitle: Text(member['email']),
-        trailing: isCreator
-            ? Chip(
-                label: const Text("Creator"),
-                backgroundColor: Theme.of(
-                  context,
-                ).primaryColor.withValues(alpha: 0.1),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(member['email']),
+            if (isCreator)
+              Container(
+                margin: const EdgeInsets.only(top: 4),
+                child: Chip(
+                  label: const Text("Creator", style: TextStyle(fontSize: 12)),
+                  backgroundColor: Theme.of(
+                    context,
+                  ).primaryColor.withValues(alpha: 0.1),
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+          ],
+        ),
+        trailing: (showRemoveOption && !isCreator && !isCurrentUser)
+            ? IconButton(
+                icon: const Icon(
+                  Icons.remove_circle_outline,
+                  color: Colors.red,
+                ),
+                onPressed: () => _showRemoveConfirmation(context, member),
+                tooltip: 'Remove member',
               )
             : null,
+      ),
+    );
+  }
+
+  void _showRemoveConfirmation(
+    BuildContext context,
+    Map<String, dynamic> member,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove Member'),
+        content: Text(
+          'Are you sure you want to remove ${member['name'] ?? member['email']} from this group?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // Navigate to member management for removal
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) =>
+                      MemberManagementScreen(groupId: group.id, group: group),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Remove'),
+          ),
+        ],
       ),
     );
   }

@@ -213,6 +213,16 @@ class GroupService {
             .map((inv) => inv.toJson())
             .toList(),
       });
+
+      // Send notifications to invited users (if they have accounts)
+      for (final invitation in newInvitations) {
+        await _sendInvitationNotification(
+          groupId: groupId,
+          groupName: group.name,
+          invitedEmail: invitation.email,
+          invitedBy: currentUser.uid,
+        );
+      }
     }
   }
 
@@ -386,6 +396,53 @@ class GroupService {
     return members;
   }
 
+  /// Removes a member from a group (only group creator can remove members)
+  Future<void> removeMember({
+    required String groupId,
+    required String memberId,
+  }) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      throw Exception('User must be authenticated to remove members');
+    }
+
+    final groupDoc = await _groupsCollection.doc(groupId).get();
+    if (!groupDoc.exists) {
+      throw Exception('Group not found');
+    }
+
+    final group = Group.fromJson(groupDoc.data() as Map<String, dynamic>);
+
+    // Only group creator can remove members
+    if (group.createdBy != currentUser.uid) {
+      throw Exception('Only group creator can remove members');
+    }
+
+    // Cannot remove the group creator
+    if (memberId == group.createdBy) {
+      throw Exception('Cannot remove group creator');
+    }
+
+    // Check if member exists in the group
+    if (!group.memberIds.contains(memberId)) {
+      throw Exception('User is not a member of this group');
+    }
+
+    // Remove member from group
+    final updatedMemberIds = group.memberIds
+        .where((id) => id != memberId)
+        .toList();
+
+    await _groupsCollection.doc(groupId).update({
+      'memberIds': updatedMemberIds,
+    });
+
+    // Remove group from user's groups list
+    await _usersCollection.doc(memberId).update({
+      'groups': FieldValue.arrayRemove([groupId]),
+    });
+  }
+
   /// Real-time stream of groups for the current user
   Stream<List<Group>> getGroupsStream() {
     final currentUser = _auth.currentUser;
@@ -427,5 +484,48 @@ class GroupService {
   /// Helper method to validate email format
   bool _isValidEmail(String email) {
     return RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email);
+  }
+
+  /// Helper method to send invitation notification
+  Future<void> _sendInvitationNotification({
+    required String groupId,
+    required String groupName,
+    required String invitedEmail,
+    required String invitedBy,
+  }) async {
+    try {
+      // Check if user with this email exists
+      final userQuery = await _usersCollection
+          .where('email', isEqualTo: invitedEmail)
+          .limit(1)
+          .get();
+
+      if (userQuery.docs.isNotEmpty) {
+        final userId = userQuery.docs.first.id;
+        final inviterDoc = await _usersCollection.doc(invitedBy).get();
+        final inviterName = inviterDoc.exists
+            ? (inviterDoc.data() as Map<String, dynamic>)['name'] ?? 'Someone'
+            : 'Someone';
+
+        // Create notification document
+        final notificationId = _firestore.collection('notifications').doc().id;
+        await _firestore.collection('notifications').doc(notificationId).set({
+          'id': notificationId,
+          'userId': userId,
+          'type': 'groupInvitation',
+          'title': 'Group Invitation',
+          'message': '$inviterName invited you to join "$groupName"',
+          'createdAt': Timestamp.now(),
+          'isRead': false,
+          'readAt': null,
+          'groupId': groupId,
+          'groupName': groupName,
+          'invitedBy': invitedBy,
+        });
+      }
+    } catch (e) {
+      // Silently handle notification errors - don't fail the invitation process
+      print('Failed to send invitation notification: $e');
+    }
   }
 }
