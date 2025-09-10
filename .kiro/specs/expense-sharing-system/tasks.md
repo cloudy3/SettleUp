@@ -102,7 +102,7 @@
   - Add loading states and error recovery options
   - _Requirements: 3.2, 3.5, 7.4, 7.5_
 
-- [ ] 14. Write integration tests for core workflows
+- [x] 14. Write integration tests for core workflows
 
   - Create tests for complete group creation and member invitation flow
   - Test expense addition with various split types and balance calculations
