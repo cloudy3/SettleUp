@@ -16,7 +16,7 @@ class NotificationService {
   // Collection references
   CollectionReference get _notificationsCollection =>
       firestore.collection('notifications');
-  CollectionReference get _usersCollection => firestore.collection('Users');
+  // CollectionReference get _usersCollection => firestore.collection('Users');
 
   /// Sends a settlement confirmation notification
   Future<void> sendSettlementNotification({
@@ -224,16 +224,16 @@ class NotificationService {
   }
 
   /// Gets user name by user ID (helper method)
-  Future<String> _getUserName(String userId) async {
-    try {
-      final userDoc = await _usersCollection.doc(userId).get();
-      if (userDoc.exists) {
-        final userData = userDoc.data() as Map<String, dynamic>;
-        return userData['name'] ?? userData['email'] ?? 'Unknown User';
-      }
-      return 'Unknown User';
-    } catch (e) {
-      return 'Unknown User';
-    }
-  }
+  // Future<String> _getUserName(String userId) async {
+  //   try {
+  //     final userDoc = await _usersCollection.doc(userId).get();
+  //     if (userDoc.exists) {
+  //       final userData = userDoc.data() as Map<String, dynamic>;
+  //       return userData['name'] ?? userData['email'] ?? 'Unknown User';
+  //     }
+  //     return 'Unknown User';
+  //   } catch (e) {
+  //     return 'Unknown User';
+  //   }
+  // }
 }

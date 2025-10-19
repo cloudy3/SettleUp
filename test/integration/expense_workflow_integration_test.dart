@@ -452,23 +452,6 @@ void main() {
       });
 
       testWidgets('should validate expense deletion impact', (tester) async {
-        // Create expense that affects balances
-        final expense = Expense(
-          id: 'expense_to_delete',
-          groupId: testGroupId,
-          description: 'To be deleted',
-          amount: 200.0,
-          paidBy: testUserId,
-          date: DateTime.now(),
-          split: ExpenseSplit(
-            type: SplitType.equal,
-            participants: [testUserId, otherUserId],
-            shares: {testUserId: 1.0, otherUserId: 1.0},
-          ),
-          createdBy: testUserId,
-          createdAt: DateTime.now(),
-        );
-
         // Calculate balance before deletion
         final balanceBeforeDeletion = Balance.create(
           userId: testUserId,

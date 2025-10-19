@@ -152,6 +152,7 @@ void main() {
       test('should not retry on non-retryable errors', () async {
         int attempts = 0;
 
+        bool errorThrown = false;
         try {
           await RetryMechanism.execute(
             () async {
@@ -163,17 +164,19 @@ void main() {
               initialDelay: Duration(milliseconds: 1),
             ),
           );
-          fail('Should have thrown error');
         } catch (e) {
+          errorThrown = true;
           expect(e, isA<ValidationError>());
         }
 
+        expect(errorThrown, true, reason: 'Should have thrown error');
         expect(attempts, 1); // Should not retry validation errors
       });
 
       test('should respect max attempts', () async {
         int attempts = 0;
 
+        bool errorThrown = false;
         try {
           await RetryMechanism.execute(
             () async {
@@ -185,11 +188,12 @@ void main() {
               initialDelay: Duration(milliseconds: 1),
             ),
           );
-          fail('Should have thrown error');
         } catch (e) {
+          errorThrown = true;
           expect(e, isA<NetworkError>());
         }
 
+        expect(errorThrown, true, reason: 'Should have thrown error');
         expect(attempts, 2);
       });
     });

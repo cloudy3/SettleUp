@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import '../../lib/services/balance_service.dart';
-import '../../lib/models/models.dart';
+import 'package:settle_up/services/balance_service.dart';
+import 'package:settle_up/models/models.dart';
 
 void main() {
   group('BalanceService Business Logic Tests', () {
@@ -140,33 +140,6 @@ void main() {
 
       test('should handle multiple creditors and debtors', () {
         // Complex scenario: A owes 200, B owes 100, C is owed 150, D is owed 150
-        final balances = [
-          Balance.create(
-            userId: testUserId,
-            groupId: testGroupId,
-            owes: {},
-            owedBy: {},
-          )..copyWith(
-            owes: {otherUserId: 100.0, thirdUserId: 100.0},
-            owedBy: {},
-          ),
-          Balance.create(
-            userId: otherUserId,
-            groupId: testGroupId,
-            owes: {},
-            owedBy: {},
-          )..copyWith(owes: {thirdUserId: 100.0}, owedBy: {testUserId: 100.0}),
-          Balance.create(
-            userId: thirdUserId,
-            groupId: testGroupId,
-            owes: {},
-            owedBy: {},
-          )..copyWith(
-            owes: {},
-            owedBy: {testUserId: 100.0, otherUserId: 100.0},
-          ),
-        ];
-
         // Manually create balances with correct net balances
         final testUserBalance = Balance(
           userId: testUserId,
@@ -274,7 +247,6 @@ void main() {
           ),
         ];
 
-        final settlements = <Settlement>[];
         final memberIds = [testUserId, otherUserId, thirdUserId];
 
         // Test the private method logic by simulating it
@@ -311,17 +283,6 @@ void main() {
             // This user owes money to the payer
             owes[expense.paidBy] =
                 (owes[expense.paidBy] ?? 0.0) + participantAmounts[testUserId]!;
-          }
-        }
-
-        // Process settlements (none in this test)
-        for (Settlement settlement in settlements) {
-          if (settlement.fromUserId == testUserId) {
-            owes[settlement.toUserId] =
-                (owes[settlement.toUserId] ?? 0.0) - settlement.amount;
-          } else if (settlement.toUserId == testUserId) {
-            owedBy[settlement.fromUserId] =
-                (owedBy[settlement.fromUserId] ?? 0.0) - settlement.amount;
           }
         }
 
@@ -366,7 +327,6 @@ void main() {
           ),
         ];
 
-        final settlements = <Settlement>[];
         final memberIds = [testUserId, otherUserId, thirdUserId];
 
         // Simulate balance calculation for testUserId
@@ -452,7 +412,6 @@ void main() {
           ),
         ];
 
-        final settlements = <Settlement>[];
         final memberIds = [testUserId, otherUserId];
 
         // Simulate balance calculation for testUserId

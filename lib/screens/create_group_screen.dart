@@ -2,7 +2,6 @@ import "package:flutter/material.dart";
 import "package:settle_up/services/group_service.dart";
 import "package:settle_up/services/error_handling_service.dart";
 import "package:settle_up/services/offline_manager.dart";
-import "package:settle_up/models/app_error.dart";
 import "package:settle_up/utils/form_validators.dart";
 import "package:settle_up/utils/loading_state.dart";
 import "package:settle_up/widgets/error_handling_widgets.dart";

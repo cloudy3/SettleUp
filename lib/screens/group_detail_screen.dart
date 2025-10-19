@@ -183,7 +183,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
                       ),
                       _BalancesTab(
                         groupProvider: groupProvider,
-                        currentUserId: _currentUserId!,
+                        currentUserId: _currentUserId,
                         groupId: widget.groupId,
                         isOnline: offlineProvider.isOnline,
                       ),

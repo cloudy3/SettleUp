@@ -6,7 +6,7 @@ class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
   @override
-  _OnboardingScreenState createState() => _OnboardingScreenState();
+  State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
@@ -35,16 +35,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Future<void> _submit() async {
     if (_nameController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Name is required.")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Name is required.")));
       return;
     }
 
     if (_selectedAvatar == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select an avatar.")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Please select an avatar.")));
       return;
     }
 
@@ -61,30 +61,32 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           .collection("Users")
           .doc(user.uid)
           .update({
-        "name": _nameController.text,
-        "avatarName": _selectedAvatar,
-        "onboardingCompleted": true,
-      });
+            "name": _nameController.text,
+            "avatarName": _selectedAvatar,
+            "onboardingCompleted": true,
+          });
 
       // Navigate to the home screen or another screen
+      if (!mounted) return;
       Navigator.of(context).pushReplacementNamed("/home");
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("An error occurred. Please try again.")),
       );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Complete Your Profile"),
-      ),
+      appBar: AppBar(title: const Text("Complete Your Profile")),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -111,8 +113,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         radius: 40,
                         backgroundImage: AssetImage(avatar),
                         child: _selectedAvatar == avatar
-                            ? const Icon(Icons.check_circle,
-                                color: Colors.green, size: 30)
+                            ? const Icon(
+                                Icons.check_circle,
+                                color: Colors.green,
+                                size: 30,
+                              )
                             : null,
                       ),
                     );

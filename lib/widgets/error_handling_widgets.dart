@@ -10,12 +10,12 @@ class ErrorDisplay extends StatelessWidget {
   final bool showDetails;
 
   const ErrorDisplay({
-    Key? key,
+    super.key,
     required this.error,
     this.onRetry,
     this.onDismiss,
     this.showDetails = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -117,14 +117,14 @@ class LoadingStateBuilder<T> extends StatelessWidget {
   final VoidCallback? onRetry;
 
   const LoadingStateBuilder({
-    Key? key,
+    super.key,
     required this.state,
     required this.builder,
     this.loadingBuilder,
     this.errorBuilder,
     this.idleBuilder,
     this.onRetry,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -138,7 +138,7 @@ class LoadingStateBuilder<T> extends StatelessWidget {
 
       case LoadingStatus.success:
         if (state.data != null) {
-          return builder(context, state.data!);
+          return builder(context, state.data as T);
         }
         return const Center(child: Text('No data available'));
 
@@ -233,7 +233,7 @@ class ValidatedFormField extends StatelessWidget {
   final TextEditingController? controller;
 
   const ValidatedFormField({
-    Key? key,
+    super.key,
     this.label,
     this.hint,
     this.value,
@@ -244,7 +244,7 @@ class ValidatedFormField extends StatelessWidget {
     this.obscureText = false,
     this.maxLines = 1,
     this.controller,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -319,7 +319,7 @@ class ValidatedFormField extends StatelessWidget {
 class OfflineIndicator extends StatelessWidget {
   final bool isOffline;
 
-  const OfflineIndicator({Key? key, required this.isOffline}) : super(key: key);
+  const OfflineIndicator({super.key, required this.isOffline});
 
   @override
   Widget build(BuildContext context) {
@@ -351,11 +351,11 @@ class RetryButton extends StatelessWidget {
   final bool isLoading;
 
   const RetryButton({
-    Key? key,
+    super.key,
     required this.onRetry,
     this.label,
     this.isLoading = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

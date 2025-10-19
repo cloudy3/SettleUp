@@ -12,9 +12,7 @@ class AccountScreen extends StatelessWidget {
     final themeProvider = Provider.of<ThemeProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Account"),
-      ),
+      appBar: AppBar(title: const Text("Account")),
       body: Column(
         children: [
           // User Profile Section
@@ -29,11 +27,7 @@ class AccountScreen extends StatelessWidget {
                       : null,
                   backgroundColor: Colors.blue[100],
                   child: user?.photoURL == null
-                      ? const Icon(
-                          Icons.person,
-                          size: 50,
-                          color: Colors.white,
-                        )
+                      ? const Icon(Icons.person, size: 50, color: Colors.white)
                       : null,
                 ),
                 const SizedBox(height: 16),
@@ -76,7 +70,9 @@ class AccountScreen extends StatelessWidget {
             child: ElevatedButton.icon(
               onPressed: () async {
                 await FirebaseAuth.instance.signOut();
-                Navigator.pushReplacementNamed(context, "/auth");
+                if (context.mounted) {
+                  Navigator.pushReplacementNamed(context, "/auth");
+                }
               },
               icon: const Icon(Icons.logout),
               label: const Text("Log Out"),

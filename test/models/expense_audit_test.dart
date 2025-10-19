@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../lib/models/expense_audit.dart';
+import 'package:settle_up/models/expense_audit.dart';
 
 void main() {
   group('ExpenseAudit', () {

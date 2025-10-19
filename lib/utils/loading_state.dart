@@ -55,7 +55,7 @@ class LoadingState<T> {
     }
 
     try {
-      final transformedData = transform(data!);
+      final transformedData = transform(data as T);
       return LoadingState<U>._(
         status: status,
         data: transformedData,

@@ -4,7 +4,6 @@ import 'package:settle_up/models/models.dart';
 void main() {
   group('Group Workflow Integration Tests', () {
     const String testUserId = 'test_user_123';
-    const String testUserEmail = 'test@example.com';
     const String otherUserId = 'other_user_456';
     const String otherUserEmail = 'other@example.com';
     const String thirdUserId = 'third_user_789';

@@ -2,6 +2,7 @@
 ///
 /// This file defines various error types and their handling mechanisms
 /// to provide user-friendly error messages and recovery options.
+library;
 
 enum ErrorType {
   network,
@@ -34,10 +35,9 @@ abstract class AppError implements Exception {
     this.severity = ErrorSeverity.medium,
     this.code,
     this.context,
-    StackTrace? stackTrace,
+    this.stackTrace,
     DateTime? timestamp,
-  }) : timestamp = timestamp ?? DateTime.now(),
-       stackTrace = stackTrace;
+  }) : timestamp = timestamp ?? DateTime.now();
 
   /// User-friendly message to display in UI
   String get displayMessage => userMessage ?? message;
@@ -69,24 +69,19 @@ class NetworkError extends AppError {
   final int? statusCode;
 
   NetworkError({
-    required String message,
+    required super.message,
     String? userMessage,
     this.isConnected = true,
     this.statusCode,
-    String? code,
-    Map<String, dynamic>? context,
-    StackTrace? stackTrace,
-    DateTime? timestamp,
+    super.code,
+    super.context,
+    super.stackTrace,
+    super.timestamp,
   }) : super(
-         message: message,
          userMessage:
              userMessage ?? 'Network connection problem. Please try again.',
          type: ErrorType.network,
          severity: ErrorSeverity.medium,
-         code: code,
-         context: context,
-         stackTrace: stackTrace,
-         timestamp: timestamp,
        );
 
   @override
@@ -116,21 +111,16 @@ class NetworkError extends AppError {
 /// Authentication-related errors
 class AuthenticationError extends AppError {
   AuthenticationError({
-    required String message,
+    required super.message,
     String? userMessage,
-    String? code,
-    Map<String, dynamic>? context,
-    StackTrace? stackTrace,
-    DateTime? timestamp,
+    super.code,
+    super.context,
+    super.stackTrace,
+    super.timestamp,
   }) : super(
-         message: message,
          userMessage: userMessage ?? 'Authentication required. Please sign in.',
          type: ErrorType.authentication,
          severity: ErrorSeverity.high,
-         code: code,
-         context: context,
-         stackTrace: stackTrace,
-         timestamp: timestamp,
        );
 
   factory AuthenticationError.notSignedIn() => AuthenticationError(
@@ -151,22 +141,17 @@ class ValidationError extends AppError {
   final Map<String, List<String>>? fieldErrors;
 
   ValidationError({
-    required String message,
+    required super.message,
     String? userMessage,
     this.fieldErrors,
-    String? code,
-    Map<String, dynamic>? context,
-    StackTrace? stackTrace,
-    DateTime? timestamp,
+    super.code,
+    super.context,
+    super.stackTrace,
+    super.timestamp,
   }) : super(
-         message: message,
          userMessage: userMessage ?? 'Please check your input and try again.',
          type: ErrorType.validation,
          severity: ErrorSeverity.low,
-         code: code,
-         context: context,
-         stackTrace: stackTrace,
-         timestamp: timestamp,
        );
 
   factory ValidationError.required(String field) => ValidationError(
@@ -204,24 +189,19 @@ class PermissionError extends AppError {
   final String? requiredPermission;
 
   PermissionError({
-    required String message,
+    required super.message,
     String? userMessage,
     this.requiredPermission,
-    String? code,
-    Map<String, dynamic>? context,
-    StackTrace? stackTrace,
-    DateTime? timestamp,
+    super.code,
+    super.context,
+    super.stackTrace,
+    super.timestamp,
   }) : super(
-         message: message,
          userMessage:
              userMessage ??
              'You don\'t have permission to perform this action.',
          type: ErrorType.permission,
          severity: ErrorSeverity.medium,
-         code: code,
-         context: context,
-         stackTrace: stackTrace,
-         timestamp: timestamp,
        );
 
   factory PermissionError.accessDenied(String resource) => PermissionError(
@@ -243,23 +223,18 @@ class NotFoundError extends AppError {
   final String? resourceId;
 
   NotFoundError({
-    required String message,
+    required super.message,
     String? userMessage,
     this.resourceType,
     this.resourceId,
-    String? code,
-    Map<String, dynamic>? context,
-    StackTrace? stackTrace,
-    DateTime? timestamp,
+    super.code,
+    super.context,
+    super.stackTrace,
+    super.timestamp,
   }) : super(
-         message: message,
          userMessage: userMessage ?? 'The requested item was not found.',
          type: ErrorType.notFound,
          severity: ErrorSeverity.medium,
-         code: code,
-         context: context,
-         stackTrace: stackTrace,
-         timestamp: timestamp,
        );
 
   factory NotFoundError.resource(String type, String id) => NotFoundError(
@@ -274,22 +249,17 @@ class NotFoundError extends AppError {
 /// Conflict errors (e.g., duplicate data)
 class ConflictError extends AppError {
   ConflictError({
-    required String message,
+    required super.message,
     String? userMessage,
-    String? code,
-    Map<String, dynamic>? context,
-    StackTrace? stackTrace,
-    DateTime? timestamp,
+    super.code,
+    super.context,
+    super.stackTrace,
+    super.timestamp,
   }) : super(
-         message: message,
          userMessage:
              userMessage ?? 'This action conflicts with existing data.',
          type: ErrorType.conflict,
          severity: ErrorSeverity.medium,
-         code: code,
-         context: context,
-         stackTrace: stackTrace,
-         timestamp: timestamp,
        );
 
   factory ConflictError.duplicate(String resource) => ConflictError(
@@ -302,22 +272,17 @@ class ConflictError extends AppError {
 /// Unknown/unexpected errors
 class UnknownError extends AppError {
   UnknownError({
-    required String message,
+    required super.message,
     String? userMessage,
-    String? code,
-    Map<String, dynamic>? context,
-    StackTrace? stackTrace,
-    DateTime? timestamp,
+    super.code,
+    super.context,
+    super.stackTrace,
+    super.timestamp,
   }) : super(
-         message: message,
          userMessage:
              userMessage ?? 'An unexpected error occurred. Please try again.',
          type: ErrorType.unknown,
          severity: ErrorSeverity.high,
-         code: code,
-         context: context,
-         stackTrace: stackTrace,
-         timestamp: timestamp,
        );
 
   factory UnknownError.fromException(Exception e, [StackTrace? stackTrace]) =>

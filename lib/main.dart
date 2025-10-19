@@ -4,7 +4,7 @@ import "package:flutter/material.dart";
 import "package:firebase_core/firebase_core.dart";
 import "package:provider/provider.dart";
 import "package:settle_up/screens/home_screen.dart";
-import "package:settle_up/screens/onboarding_scren.dart";
+import "package:settle_up/screens/onboarding_screen.dart";
 import "firebase_options.dart";
 import "package:settle_up/screens/auth_screen.dart";
 import "package:settle_up/providers/providers.dart";

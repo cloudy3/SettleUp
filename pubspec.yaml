@@ -31,6 +31,8 @@ dev_dependencies:
   build_runner: ^2.4.12
   test: ^1.25.15
 
+  cloud_firestore_platform_interface: any
+  firebase_auth_platform_interface: any
 flutter:
   uses-material-design: true
 

@@ -6,7 +6,7 @@ class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
 
   @override
-  _AuthScreenState createState() => _AuthScreenState();
+  State<AuthScreen> createState() => _AuthScreenState();
 }
 
 class _AuthScreenState extends State<AuthScreen> {
@@ -31,14 +31,19 @@ class _AuthScreenState extends State<AuthScreen> {
       if (isLogin) {
         // Login user
         await authService.login(
-            _emailController.text, _passwordController.text);
+          _emailController.text,
+          _passwordController.text,
+        );
       } else {
         // Register user
         await authService.register(
-            _emailController.text, _passwordController.text);
+          _emailController.text,
+          _passwordController.text,
+        );
       }
 
       // Navigate to onboarding after successful login or registration
+      if (!mounted) return;
       Navigator.of(context).pushReplacementNamed("/onboarding");
     } catch (e) {
       String errorMessage = "An error occurred. Please try again.";
@@ -59,9 +64,10 @@ class _AuthScreenState extends State<AuthScreen> {
       }
 
       // Show error message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage)),
-      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(errorMessage)));
     } finally {
       setState(() {
         _isLoading = false;
@@ -110,10 +116,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     _isLogin
                         ? "Log in to continue"
                         : "Sign up to start splitting expenses",
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                   ),
                   const SizedBox(height: 30),
                   // Email Field
