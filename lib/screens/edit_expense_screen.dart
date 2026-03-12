@@ -185,7 +185,7 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
     final canEdit = widget.expense.createdBy == currentUserId;
 
     return DropdownButtonFormField<String>(
-      value: _selectedPayer,
+      initialValue: _selectedPayer,
       decoration: const InputDecoration(
         labelText: 'Paid by',
         border: OutlineInputBorder(),

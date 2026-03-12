@@ -1,13 +1,18 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 import java.util.Properties
 import java.io.FileInputStream
 
 plugins {
     id("com.android.application")
     id("com.google.gms.google-services")
-    id("kotlin-android")
+    id("org.jetbrains.kotlin.android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+// Workaround: KGP 2.x task not registered due to Flutter plugin interference during AS sync
+tasks.register("prepareKotlinBuildScriptModel") {}
 
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
@@ -18,15 +23,17 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace = "com.jf.settleup"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "27.0.12077973"
+    ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
+        }
     }
 
     defaultConfig {
@@ -34,7 +41,7 @@ android {
         applicationId = "com.jf.settleup"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 23
+        minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

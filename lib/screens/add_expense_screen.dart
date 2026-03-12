@@ -146,7 +146,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
   Widget _buildPayerSelector() {
     return DropdownButtonFormField<String>(
-      value: _selectedPayer,
+      initialValue: _selectedPayer,
       decoration: const InputDecoration(
         labelText: 'Paid by',
         border: OutlineInputBorder(),
