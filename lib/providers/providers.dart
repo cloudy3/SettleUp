@@ -2,3 +2,4 @@
 export 'app_state_provider.dart';
 export 'group_provider.dart';
 export 'offline_provider.dart';
+export 'theme_provider.dart';

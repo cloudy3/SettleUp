@@ -1,6 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+import 'package:settle_up/theme/app_theme.dart';
+import 'package:settle_up/theme/app_tokens.dart';
+
 import '../services/services.dart';
 
 class SettleUpScreen extends StatefulWidget {
@@ -46,25 +50,30 @@ class _SettleUpScreenState extends State<SettleUpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settle Up'),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: AppSpacing.lg),
+            child: Icon(Icons.payments_outlined, color: colorScheme.primary),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: AppInsets.screen,
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildSettlementSummaryCard(),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xl),
               _buildAmountSection(),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xl),
               _buildNoteSection(),
-              const SizedBox(height: 32),
+              const SizedBox(height: AppSpacing.xxl),
               _buildConfirmationSection(),
             ],
           ),
@@ -74,61 +83,69 @@ class _SettleUpScreenState extends State<SettleUpScreen> {
   }
 
   Widget _buildSettlementSummaryCard() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final semantic = AppTheme.semanticOf(context);
+
     return Card(
-      elevation: 4,
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: AppInsets.card,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: Colors.red,
+                  backgroundColor: colorScheme.errorContainer,
                   child: Text(
                     _currentUserId != null ? 'Y' : '?',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: colorScheme.onErrorContainer,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                const Icon(Icons.arrow_forward, color: Colors.grey),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSpacing.md),
+                Icon(Icons.arrow_forward, color: colorScheme.outline),
+                const SizedBox(width: AppSpacing.md),
                 CircleAvatar(
-                  backgroundColor: Colors.green,
+                  backgroundColor: colorScheme.primaryContainer,
                   child: Text(
                     widget.toUserName.isNotEmpty
                         ? widget.toUserName[0].toUpperCase()
                         : '?',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: colorScheme.onPrimaryContainer,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             Text(
               'You are settling up with ${widget.toUserName}',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+              padding: const EdgeInsets.symmetric(
+                vertical: AppSpacing.sm,
+                horizontal: AppSpacing.md,
+              ),
               decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                color: semantic.warning.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(AppRadii.sm),
+                border: Border.all(
+                  color: semantic.warning.withValues(alpha: 0.35),
+                ),
               ),
               child: Text(
                 'Total owed: \$${widget.amount.toStringAsFixed(2)}',
-                style: const TextStyle(
-                  color: Colors.red,
+                style: TextStyle(
+                  color: semantic.warning,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -140,19 +157,22 @@ class _SettleUpScreenState extends State<SettleUpScreen> {
   }
 
   Widget _buildAmountSection() {
+    final theme = Theme.of(context);
+    final semantic = AppTheme.semanticOf(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Payment Amount',
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
         Card(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: AppInsets.card,
             child: Column(
               children: [
                 TextFormField(
@@ -194,7 +214,7 @@ class _SettleUpScreenState extends State<SettleUpScreen> {
                     });
                   },
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.lg),
                 Row(
                   children: [
                     Expanded(
@@ -209,7 +229,7 @@ class _SettleUpScreenState extends State<SettleUpScreen> {
                         child: const Text('Pay Half'),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppSpacing.md),
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () {
@@ -225,26 +245,26 @@ class _SettleUpScreenState extends State<SettleUpScreen> {
                   ],
                 ),
                 if (_isPartialPayment) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(AppSpacing.md),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(6),
+                      color: semantic.warning.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppRadii.sm),
                       border: Border.all(
-                        color: Colors.orange.withValues(alpha: 0.3),
+                        color: semantic.warning.withValues(alpha: 0.35),
                       ),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.info, color: Colors.orange, size: 20),
-                        const SizedBox(width: 8),
+                        Icon(Icons.info, color: semantic.warning, size: 20),
+                        const SizedBox(width: AppSpacing.sm),
                         Expanded(
                           child: Text(
                             'This is a partial payment. You will still owe \$${(widget.amount - (double.tryParse(_amountController.text) ?? 0)).toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              color: Colors.orange,
-                              fontSize: 12,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: semantic.warning,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
@@ -261,19 +281,21 @@ class _SettleUpScreenState extends State<SettleUpScreen> {
   }
 
   Widget _buildNoteSection() {
+    final theme = Theme.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Note (Optional)',
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
         Card(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: AppInsets.card,
             child: TextFormField(
               controller: _noteController,
               maxLines: 3,
@@ -291,49 +313,52 @@ class _SettleUpScreenState extends State<SettleUpScreen> {
   }
 
   Widget _buildConfirmationSection() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final semantic = AppTheme.semanticOf(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: AppInsets.card,
           decoration: BoxDecoration(
-            color: Colors.blue.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+            color: semantic.info.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(AppRadii.md),
+            border: Border.all(color: semantic.info.withValues(alpha: 0.3)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.info, color: Colors.blue, size: 20),
-                  SizedBox(width: 8),
+                  Icon(Icons.info, color: semantic.info, size: 20),
+                  const SizedBox(width: AppSpacing.sm),
                   Text(
                     'Confirmation',
                     style: TextStyle(
-                      color: Colors.blue,
+                      color: semantic.info,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              const Text(
+              const SizedBox(height: AppSpacing.sm),
+              Text(
                 'By confirming this settlement, you are recording that you have paid this amount to the other person. This action cannot be undone.',
-                style: TextStyle(fontSize: 12),
+                style: theme.textTheme.bodySmall,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               Text(
                 'Both you and ${widget.toUserName} will be notified of this settlement.',
-                style: const TextStyle(
-                  fontSize: 12,
+                style: theme.textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w500,
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: AppSpacing.xl),
         Row(
           children: [
             Expanded(
@@ -344,15 +369,15 @@ class _SettleUpScreenState extends State<SettleUpScreen> {
                 child: const Text('Cancel'),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: AppSpacing.lg),
             Expanded(
               flex: 2,
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _recordSettlement,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
                 ),
                 child: _isLoading
                     ? const SizedBox(
@@ -385,9 +410,9 @@ class _SettleUpScreenState extends State<SettleUpScreen> {
     final amount = double.tryParse(_amountController.text);
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('Please enter a valid amount'),
-          backgroundColor: Colors.red,
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
       return;
@@ -424,7 +449,7 @@ class _SettleUpScreenState extends State<SettleUpScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to record settlement: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
             action: SnackBarAction(
               label: 'Retry',
               onPressed: _recordSettlement,
@@ -436,6 +461,9 @@ class _SettleUpScreenState extends State<SettleUpScreen> {
   }
 
   Future<bool> _showConfirmationDialog(double amount) async {
+    final theme = Theme.of(context);
+    final semantic = AppTheme.semanticOf(context);
+
     return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
@@ -445,39 +473,42 @@ class _SettleUpScreenState extends State<SettleUpScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('You are about to record a payment of:'),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(AppSpacing.md),
                   decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
+                    color: semantic.success.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppRadii.sm),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.payment, color: Colors.green),
-                      const SizedBox(width: 8),
+                      Icon(Icons.payment, color: semantic.success),
+                      const SizedBox(width: AppSpacing.sm),
                       Text(
                         '\$${amount.toStringAsFixed(2)} to ${widget.toUserName}',
-                        style: const TextStyle(
+                        style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w600,
-                          fontSize: 16,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.md),
                 if (_noteController.text.trim().isNotEmpty) ...[
-                  const Text(
+                  Text(
                     'Note:',
-                    style: TextStyle(fontWeight: FontWeight.w500),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   Text(_noteController.text.trim()),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                 ],
-                const Text(
+                Text(
                   'This action cannot be undone. Are you sure?',
-                  style: TextStyle(fontWeight: FontWeight.w500),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -489,7 +520,7 @@ class _SettleUpScreenState extends State<SettleUpScreen> {
               ElevatedButton(
                 onPressed: () => Navigator.pop(context, true),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
+                  backgroundColor: semantic.success,
                   foregroundColor: Colors.white,
                 ),
                 child: const Text('Confirm'),
