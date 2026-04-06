@@ -2,6 +2,7 @@ import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/material.dart";
 import "package:provider/provider.dart";
 import "package:settle_up/models/models.dart";
+import "package:settle_up/utils/currency_format.dart";
 import "package:settle_up/providers/providers.dart";
 import "add_expense_screen.dart";
 import "expense_detail_screen.dart";
@@ -386,7 +387,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
 }
 
 // Separate widget for expenses tab with real-time updates
-class _ExpensesTab extends StatelessWidget {
+class _ExpensesTab extends StatefulWidget {
   final GroupProvider groupProvider;
   final String currentUserId;
   final bool isOnline;
@@ -398,12 +399,36 @@ class _ExpensesTab extends StatelessWidget {
   });
 
   @override
+  State<_ExpensesTab> createState() => _ExpensesTabState();
+}
+
+class _ExpensesTabState extends State<_ExpensesTab> {
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<Expense> _filtered(List<Expense> all) {
+    final q = _searchController.text.trim().toLowerCase();
+    if (q.isEmpty) return all;
+    return all.where((e) {
+      if (e.description.toLowerCase().contains(q)) return true;
+      if (e.category.label.toLowerCase().contains(q)) return true;
+      if (e.note != null && e.note!.toLowerCase().contains(q)) return true;
+      return false;
+    }).toList();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (groupProvider.isLoadingExpenses) {
+    if (widget.groupProvider.isLoadingExpenses) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final expenses = groupProvider.expenses;
+    final expenses = widget.groupProvider.expenses;
 
     if (expenses.isEmpty) {
       return const Center(
@@ -426,16 +451,46 @@ class _ExpensesTab extends StatelessWidget {
       );
     }
 
-    return ListView.builder(
-      itemCount: expenses.length,
-      itemBuilder: (context, index) {
-        final expense = expenses[index];
-        return _ExpenseCard(
-          expense: expense,
-          groupProvider: groupProvider,
-          currentUserId: currentUserId,
-        );
-      },
+    final visible = _filtered(expenses);
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Search by description, category, or notes',
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              isDense: true,
+            ),
+            onChanged: (_) => setState(() {}),
+          ),
+        ),
+        Expanded(
+          child: visible.isEmpty
+              ? Center(
+                  child: Text(
+                    'No expenses match "${_searchController.text.trim()}"',
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: visible.length,
+                  itemBuilder: (context, index) {
+                    final expense = visible[index];
+                    return _ExpenseCard(
+                      expense: expense,
+                      groupProvider: widget.groupProvider,
+                      currentUserId: widget.currentUserId,
+                    );
+                  },
+                ),
+        ),
+      ],
     );
   }
 }
@@ -468,17 +523,22 @@ class _BalancesTab extends StatelessWidget {
           owes: {},
           owedBy: {},
         );
+    final currency = groupProvider.group?.currency ?? 'USD';
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _BalanceSummaryCard(balance: currentUserBalance),
+          _BalanceSummaryCard(
+            balance: currentUserBalance,
+            currencyCode: currency,
+          ),
           const SizedBox(height: 16),
           _BalancesList(
             currentUserBalance: currentUserBalance,
             groupProvider: groupProvider,
+            currencyCode: currency,
           ),
         ],
       ),
@@ -591,10 +651,23 @@ class _ExpenseCard extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Paid by $payerName • \${expense.amount.toStringAsFixed(2)}"),
+            if (expense.category != ExpenseCategory.general)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  expense.category.label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ),
+            Text(
+              "Paid by $payerName • ${formatCurrencyAmount(expense.amount, groupProvider.group?.currency ?? 'USD')}",
+            ),
             if (userShare > 0)
               Text(
-                "Your share: \${userShare.toStringAsFixed(2)}",
+                "Your share: ${formatCurrencyAmount(userShare, groupProvider.group?.currency ?? 'USD')}",
                 style: TextStyle(
                   color: expense.paidBy == currentUserId
                       ? Colors.green
@@ -641,8 +714,12 @@ class _ExpenseCard extends StatelessWidget {
 // Balance summary card widget
 class _BalanceSummaryCard extends StatelessWidget {
   final Balance balance;
+  final String currencyCode;
 
-  const _BalanceSummaryCard({required this.balance});
+  const _BalanceSummaryCard({
+    required this.balance,
+    this.currencyCode = 'USD',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -690,7 +767,7 @@ class _BalanceSummaryCard extends StatelessWidget {
                         const Icon(Icons.arrow_downward, color: Colors.green),
                         const SizedBox(width: 8),
                         Text(
-                          "You are owed \${balance.netBalance.toStringAsFixed(2)}",
+                          "You are owed ${formatCurrencyAmount(balance.netBalance, currencyCode)}",
                           style: const TextStyle(
                             color: Colors.green,
                             fontSize: 16,
@@ -704,7 +781,7 @@ class _BalanceSummaryCard extends StatelessWidget {
                         const Icon(Icons.arrow_upward, color: Colors.red),
                         const SizedBox(width: 8),
                         Text(
-                          "You owe \${(-balance.netBalance).toStringAsFixed(2)}",
+                          "You owe ${formatCurrencyAmount(-balance.netBalance, currencyCode)}",
                           style: const TextStyle(
                             color: Colors.red,
                             fontSize: 16,
@@ -725,10 +802,12 @@ class _BalanceSummaryCard extends StatelessWidget {
 class _BalancesList extends StatelessWidget {
   final Balance currentUserBalance;
   final GroupProvider groupProvider;
+  final String currencyCode;
 
   const _BalancesList({
     required this.currentUserBalance,
     required this.groupProvider,
+    this.currencyCode = 'USD',
   });
 
   @override
@@ -745,7 +824,7 @@ class _BalancesList extends StatelessWidget {
             leading: const Icon(Icons.arrow_upward, color: Colors.red),
             title: Text("You owe $memberName"),
             trailing: Text(
-              "\${amount.toStringAsFixed(2)}",
+              formatCurrencyAmount(amount, currencyCode),
               style: const TextStyle(
                 color: Colors.red,
                 fontWeight: FontWeight.w600,
@@ -757,6 +836,7 @@ class _BalancesList extends StatelessWidget {
               amount,
               memberName,
               groupProvider,
+              currencyCode,
             ),
           ),
         );
@@ -772,7 +852,7 @@ class _BalancesList extends StatelessWidget {
             leading: const Icon(Icons.arrow_downward, color: Colors.green),
             title: Text("$memberName owes you"),
             trailing: Text(
-              "\${amount.toStringAsFixed(2)}",
+              formatCurrencyAmount(amount, currencyCode),
               style: const TextStyle(
                 color: Colors.green,
                 fontWeight: FontWeight.w600,
@@ -824,13 +904,14 @@ class _BalancesList extends StatelessWidget {
     double amount,
     String memberName,
     GroupProvider groupProvider,
+    String currencyCode,
   ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text("Settle Up with $memberName"),
         content: Text(
-          "Record a payment of \${amount.toStringAsFixed(2)} to $memberName?",
+          "Record a payment of ${formatCurrencyAmount(amount, currencyCode)} to $memberName?",
         ),
         actions: [
           TextButton(

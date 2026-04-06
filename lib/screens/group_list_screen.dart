@@ -7,6 +7,7 @@ import "package:settle_up/services/services.dart";
 import "package:settle_up/providers/providers.dart";
 import "package:settle_up/screens/group_detail_screen.dart";
 import "package:settle_up/screens/create_group_screen.dart";
+import "package:settle_up/utils/currency_format.dart";
 
 class GroupListScreen extends StatefulWidget {
   const GroupListScreen({super.key});
@@ -28,7 +29,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
     return Consumer2<AppStateProvider, OfflineProvider>(
       builder: (context, appState, offlineProvider, child) {
         // Use cached data when offline
-        final groups = offlineProvider.isOnline
+        final allGroups = offlineProvider.isOnline
             ? appState.groups
             : offlineProvider.cachedGroups;
 
@@ -41,11 +42,11 @@ class _GroupListScreenState extends State<GroupListScreen> {
 
         return Column(
           children: [
-            _buildOverallBalanceHeader(appState, groups),
+            _buildOverallBalanceHeader(appState, allGroups),
             Expanded(
               child: _buildGroupsList(
                 appState,
-                groups,
+                allGroups,
                 offlineProvider.isOnline,
               ),
             ),
@@ -57,16 +58,19 @@ class _GroupListScreenState extends State<GroupListScreen> {
 
   Widget _buildGroupsList(
     AppStateProvider appState,
-    List<Group> groups,
+    List<Group> allGroups,
     bool isOnline,
   ) {
+    final groups =
+        allGroups.where((g) => !g.isPairGroup).toList(growable: false);
+
     // Show loading only when online and actually loading
-    if (isOnline && appState.isLoadingGroups && groups.isEmpty) {
+    if (isOnline && appState.isLoadingGroups && allGroups.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
 
     // Show error only when online
-    if (isOnline && appState.error != null && groups.isEmpty) {
+    if (isOnline && appState.error != null && allGroups.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -84,8 +88,23 @@ class _GroupListScreenState extends State<GroupListScreen> {
       );
     }
 
-    if (groups.isEmpty) {
+    if (allGroups.isEmpty) {
       return _buildEmptyState(isOnline);
+    }
+
+    if (groups.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            "You have no regular groups yet. Friend-only ledgers live under the Friends tab.",
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+        ),
+      );
     }
 
     return ListView.builder(
@@ -119,10 +138,11 @@ class _GroupListScreenState extends State<GroupListScreen> {
 
                 if (isOwed) {
                   text =
-                      "Overall, you are owed \$${balance.toStringAsFixed(2)}";
+                      "Overall, you are owed ${formatCurrencyAmount(balance, 'USD')}";
                   color = Colors.green;
                 } else if (isOwing) {
-                  text = "Overall, you owe \$${(-balance).toStringAsFixed(2)}";
+                  text =
+                      "Overall, you owe ${formatCurrencyAmount(-balance, 'USD')}";
                   color = Colors.red;
                 } else {
                   text = "You are all settled up!";
@@ -262,12 +282,12 @@ class _GroupListScreenState extends State<GroupListScreen> {
                 final netBalance = balance.netBalance;
                 if (netBalance > 0) {
                   return Text(
-                    "You are owed \$${netBalance.toStringAsFixed(2)}",
+                    "You are owed ${formatCurrencyAmount(netBalance, group.currency)}",
                     style: const TextStyle(color: Colors.green),
                   );
                 } else {
                   return Text(
-                    "You owe \$${(-netBalance).toStringAsFixed(2)}",
+                    "You owe ${formatCurrencyAmount(-netBalance, group.currency)}",
                     style: const TextStyle(color: Colors.red),
                   );
                 }

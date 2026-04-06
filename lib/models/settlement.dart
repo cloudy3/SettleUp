@@ -8,6 +8,8 @@ class Settlement {
   final double amount;
   final DateTime settledAt;
   final String? note;
+  /// e.g. cash, venmo, paypal, zelle, other
+  final String? paymentMethod;
 
   const Settlement({
     required this.id,
@@ -17,6 +19,7 @@ class Settlement {
     required this.amount,
     required this.settledAt,
     this.note,
+    this.paymentMethod,
   });
 
   // Validation
@@ -39,6 +42,8 @@ class Settlement {
       'amount': amount,
       'settledAt': Timestamp.fromDate(settledAt),
       'note': note,
+      if (paymentMethod != null && paymentMethod!.isNotEmpty)
+        'paymentMethod': paymentMethod,
     };
   }
 
@@ -51,6 +56,7 @@ class Settlement {
       amount: (json['amount'] ?? 0).toDouble(),
       settledAt: (json['settledAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       note: json['note'],
+      paymentMethod: json['paymentMethod'] as String?,
     );
   }
 
@@ -62,6 +68,7 @@ class Settlement {
     double? amount,
     DateTime? settledAt,
     Object? note = _sentinel,
+    Object? paymentMethod = _sentinel,
   }) {
     return Settlement(
       id: id ?? this.id,
@@ -71,6 +78,9 @@ class Settlement {
       amount: amount ?? this.amount,
       settledAt: settledAt ?? this.settledAt,
       note: note == _sentinel ? this.note : note as String?,
+      paymentMethod: paymentMethod == _sentinel
+          ? this.paymentMethod
+          : paymentMethod as String?,
     );
   }
 
@@ -86,7 +96,8 @@ class Settlement {
         other.toUserId == toUserId &&
         other.amount == amount &&
         other.settledAt == settledAt &&
-        other.note == note;
+        other.note == note &&
+        other.paymentMethod == paymentMethod;
   }
 
   @override
@@ -97,6 +108,7 @@ class Settlement {
         toUserId.hashCode ^
         amount.hashCode ^
         settledAt.hashCode ^
-        note.hashCode;
+        note.hashCode ^
+        paymentMethod.hashCode;
   }
 }

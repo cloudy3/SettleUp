@@ -19,6 +19,7 @@ class GroupService with ErrorHandlingMixin {
   Future<Group> createGroup({
     required String name,
     required String description,
+    String currency = 'USD',
   }) async {
     return await executeWithErrorHandling<Group>(
       operation: () async {
@@ -43,6 +44,9 @@ class GroupService with ErrorHandlingMixin {
           memberIds: [currentUser.uid],
           pendingInvitations: [],
           totalExpenses: 0.0,
+          currency: currency.trim().toUpperCase().isEmpty
+              ? 'USD'
+              : currency.trim().toUpperCase(),
         );
 
         // Validate the group before saving
@@ -68,7 +72,13 @@ class GroupService with ErrorHandlingMixin {
       offlineAction: OfflineAction(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         type: OfflineActionType.createGroup,
-        data: {'name': name.trim(), 'description': description.trim()},
+        data: {
+          'name': name.trim(),
+          'description': description.trim(),
+          'currency': currency.trim().toUpperCase().isEmpty
+              ? 'USD'
+              : currency.trim().toUpperCase(),
+        },
         timestamp: DateTime.now(),
       ),
     );
@@ -112,6 +122,185 @@ class GroupService with ErrorHandlingMixin {
     });
 
     return updatedGroup;
+  }
+
+  /// Returns a stable two-member group for the current user and [otherUserId], creating it if needed.
+  Future<Group> getOrCreatePairGroup({required String otherUserId}) async {
+    return await executeWithErrorHandling<Group>(
+      operation: () async {
+        final currentUser = _auth.currentUser;
+        if (currentUser == null) {
+          throw AuthenticationError.notSignedIn();
+        }
+        if (otherUserId == currentUser.uid) {
+          throw ValidationError(
+            message: 'Cannot open a friend expense with yourself',
+            code: 'INVALID_PAIR',
+          );
+        }
+
+        final otherDoc = await _usersCollection.doc(otherUserId).get();
+        if (!otherDoc.exists) {
+          throw ValidationError(
+            message: 'User not found',
+            code: 'USER_NOT_FOUND',
+          );
+        }
+
+        final pairKey = Group.pairKeyForUserIds(currentUser.uid, otherUserId);
+        final existing = await _groupsCollection
+            .where('pairKey', isEqualTo: pairKey)
+            .limit(1)
+            .get();
+
+        if (existing.docs.isNotEmpty) {
+          final group = Group.fromJson(
+            existing.docs.first.data() as Map<String, dynamic>,
+          );
+          if (!group.memberIds.contains(currentUser.uid)) {
+            throw ValidationError(
+              message: 'Invalid friend group data',
+              code: 'INVALID_PAIR_GROUP',
+            );
+          }
+          return group;
+        }
+
+        final myDoc = await _usersCollection.doc(currentUser.uid).get();
+        final myName = myDoc.exists
+            ? ((myDoc.data() as Map<String, dynamic>)['name'] as String?) ??
+                  'Me'
+            : 'Me';
+        final otherName =
+            (otherDoc.data() as Map<String, dynamic>)['name'] as String? ??
+            'Friend';
+        final names = [myName, otherName]
+          ..sort(
+            (a, b) => a.toLowerCase().compareTo(b.toLowerCase()),
+          );
+        final displayName = '${names[0]} & ${names[1]}';
+
+        final now = DateTime.now();
+        final groupId = _groupsCollection.doc().id;
+        final memberIds = [currentUser.uid, otherUserId]..sort();
+
+        final group = Group(
+          id: groupId,
+          name: displayName,
+          description: '',
+          createdBy: currentUser.uid,
+          createdAt: now,
+          memberIds: memberIds,
+          pendingInvitations: [],
+          totalExpenses: 0.0,
+          pairKey: pairKey,
+          currency: 'USD',
+        );
+
+        if (!group.isValid) {
+          throw ValidationError(
+            message: 'Invalid pair group data',
+            code: 'INVALID_GROUP_DATA',
+          );
+        }
+
+        await _groupsCollection.doc(groupId).set(group.toJson());
+        await _usersCollection.doc(currentUser.uid).update({
+          'groups': FieldValue.arrayUnion([groupId]),
+        });
+        await _usersCollection.doc(otherUserId).update({
+          'groups': FieldValue.arrayUnion([groupId]),
+        });
+
+        return group;
+      },
+      operationName: 'getOrCreatePairGroup',
+      retryConfig: RetryConfig.conservative,
+    );
+  }
+
+  /// Friends list with id, name, and email for each connected user.
+  Future<List<Map<String, dynamic>>> getFriendsWithProfiles() async {
+    return await executeWithErrorHandling<List<Map<String, dynamic>>>(
+      operation: () async {
+        final currentUser = _auth.currentUser;
+        if (currentUser == null) {
+          throw AuthenticationError.notSignedIn();
+        }
+
+        final userDoc = await _usersCollection.doc(currentUser.uid).get();
+        if (!userDoc.exists) {
+          return [];
+        }
+
+        final friendIds = List<String>.from(
+          (userDoc.data() as Map<String, dynamic>)['friends'] ?? [],
+        );
+        final result = <Map<String, dynamic>>[];
+
+        for (final friendId in friendIds) {
+          final fd = await _usersCollection.doc(friendId).get();
+          if (fd.exists) {
+            final d = fd.data() as Map<String, dynamic>;
+            result.add({
+              'id': friendId,
+              'name': d['name'] ?? '',
+              'email': d['email'] ?? '',
+            });
+          }
+        }
+
+        result.sort(
+          (a, b) => (a['name'] as String).toLowerCase().compareTo(
+                (b['name'] as String).toLowerCase(),
+              ),
+        );
+        return result;
+      },
+      operationName: 'getFriendsWithProfiles',
+      retryConfig: RetryConfig.network,
+      fallbackValue: [],
+    );
+  }
+
+  /// Adds a mutual friendship by the other user's email (both must have accounts).
+  Future<void> addFriendByEmail(String email) async {
+    final trimmed = email.trim();
+    if (!_isValidEmail(trimmed)) {
+      throw ArgumentError('Invalid email format');
+    }
+
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      throw AuthenticationError.notSignedIn();
+    }
+
+    final q = await _usersCollection
+        .where('email', isEqualTo: trimmed)
+        .limit(1)
+        .get();
+
+    if (q.docs.isEmpty) {
+      throw ValidationError(
+        message: 'No user registered with that email',
+        code: 'FRIEND_NOT_FOUND',
+      );
+    }
+
+    final friendId = q.docs.first.id;
+    if (friendId == currentUser.uid) {
+      throw ValidationError(
+        message: 'You cannot add yourself as a friend',
+        code: 'SELF_FRIEND',
+      );
+    }
+
+    await _usersCollection.doc(currentUser.uid).update({
+      'friends': FieldValue.arrayUnion([friendId]),
+    });
+    await _usersCollection.doc(friendId).update({
+      'friends': FieldValue.arrayUnion([currentUser.uid]),
+    });
   }
 
   /// Fetches all groups for the current user

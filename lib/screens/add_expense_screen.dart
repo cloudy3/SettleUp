@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/models.dart';
 import '../services/services.dart';
 import '../widgets/split_calculator.dart';
@@ -23,12 +24,15 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final _formKey = GlobalKey<FormState>();
   final _descriptionController = TextEditingController();
   final _amountController = TextEditingController();
+  final _noteController = TextEditingController();
   final ExpenseService _expenseService = ExpenseService();
 
   String? _selectedPayer;
   DateTime _selectedDate = DateTime.now();
   ExpenseSplit? _expenseSplit;
   bool _isLoading = false;
+  ExpenseCategory _category = ExpenseCategory.general;
+  XFile? _receiptFile;
 
   @override
   void initState() {
@@ -50,6 +54,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   void dispose() {
     _descriptionController.dispose();
     _amountController.dispose();
+    _noteController.dispose();
     super.dispose();
   }
 
@@ -85,6 +90,12 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               _buildPayerSelector(),
               const SizedBox(height: 16),
               _buildDateSelector(),
+              const SizedBox(height: 16),
+              _buildCategoryField(),
+              const SizedBox(height: 16),
+              _buildNoteField(),
+              const SizedBox(height: 16),
+              _buildReceiptPicker(),
               const SizedBox(height: 24),
               _buildSplitSection(),
             ],
@@ -192,6 +203,89 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     );
   }
 
+  Widget _buildCategoryField() {
+    return DropdownButtonFormField<ExpenseCategory>(
+      initialValue: _category,
+      decoration: const InputDecoration(
+        labelText: 'Category',
+        border: OutlineInputBorder(),
+        prefixIcon: Icon(Icons.category_outlined),
+      ),
+      items: ExpenseCategory.values
+          .map(
+            (c) => DropdownMenuItem(
+              value: c,
+              child: Text(c.label),
+            ),
+          )
+          .toList(),
+      onChanged: (value) {
+        if (value != null) {
+          setState(() => _category = value);
+        }
+      },
+    );
+  }
+
+  Widget _buildNoteField() {
+    return TextFormField(
+      controller: _noteController,
+      decoration: const InputDecoration(
+        labelText: 'Notes (optional)',
+        hintText: 'Add details',
+        border: OutlineInputBorder(),
+        prefixIcon: Icon(Icons.notes),
+      ),
+      maxLines: 3,
+      textCapitalization: TextCapitalization.sentences,
+    );
+  }
+
+  Widget _buildReceiptPicker() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        OutlinedButton.icon(
+          onPressed: _isLoading
+              ? null
+              : () async {
+                  final picker = ImagePicker();
+                  final file = await picker.pickImage(
+                    source: ImageSource.gallery,
+                    maxWidth: 1600,
+                    imageQuality: 85,
+                  );
+                  if (file != null) {
+                    setState(() => _receiptFile = file);
+                  }
+                },
+          icon: const Icon(Icons.photo_camera_outlined),
+          label: Text(
+            _receiptFile == null ? 'Attach receipt' : 'Change receipt',
+          ),
+        ),
+        if (_receiptFile != null) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _receiptFile!.name,
+                  style: Theme.of(context).textTheme.bodySmall,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              TextButton(
+                onPressed: () => setState(() => _receiptFile = null),
+                child: const Text('Remove'),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
   Widget _buildDateSelector() {
     return InkWell(
       onTap: _selectDate,
@@ -289,6 +383,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         paidBy: _selectedPayer!,
         date: _selectedDate,
         split: _expenseSplit!,
+        note: _noteController.text.trim().isEmpty
+            ? null
+            : _noteController.text.trim(),
+        category: _category,
+        receiptFile: _receiptFile,
       );
 
       if (mounted) {

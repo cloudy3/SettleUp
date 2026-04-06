@@ -1,6 +1,46 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum SplitType { equal, custom, percentage }
+enum SplitType { equal, custom, percentage, shares }
+
+enum ExpenseCategory {
+  general,
+  food,
+  transportation,
+  utilities,
+  entertainment,
+  shopping,
+  health,
+  other;
+
+  static ExpenseCategory fromStorage(String? raw) {
+    if (raw == null || raw.isEmpty) return ExpenseCategory.general;
+    for (final c in ExpenseCategory.values) {
+      if (c.name == raw) return c;
+    }
+    return ExpenseCategory.general;
+  }
+
+  String get label {
+    switch (this) {
+      case ExpenseCategory.general:
+        return 'General';
+      case ExpenseCategory.food:
+        return 'Food & dining';
+      case ExpenseCategory.transportation:
+        return 'Transportation';
+      case ExpenseCategory.utilities:
+        return 'Utilities';
+      case ExpenseCategory.entertainment:
+        return 'Entertainment';
+      case ExpenseCategory.shopping:
+        return 'Shopping';
+      case ExpenseCategory.health:
+        return 'Health';
+      case ExpenseCategory.other:
+        return 'Other';
+    }
+  }
+}
 
 class ExpenseSplit {
   final SplitType type;
@@ -29,6 +69,14 @@ class ExpenseSplit {
       return (total - 100.0).abs() < 0.01; // Allow small floating point errors
     }
 
+    if (type == SplitType.shares) {
+      for (final participant in participants) {
+        final w = shares[participant] ?? 0;
+        if (w <= 0) return false;
+      }
+      return true;
+    }
+
     return true;
   }
 
@@ -49,6 +97,17 @@ class ExpenseSplit {
       case SplitType.percentage:
         for (String participant in participants) {
           amounts[participant] = totalAmount * (shares[participant]! / 100.0);
+        }
+        break;
+      case SplitType.shares:
+        final totalWeight = participants.fold<double>(
+          0,
+          (sum, p) => sum + (shares[p] ?? 0),
+        );
+        if (totalWeight <= 0) break;
+        for (final participant in participants) {
+          amounts[participant] =
+              totalAmount * ((shares[participant] ?? 0) / totalWeight);
         }
         break;
     }
@@ -130,6 +189,9 @@ class Expense {
   final ExpenseSplit split;
   final String createdBy;
   final DateTime createdAt;
+  final String? note;
+  final ExpenseCategory category;
+  final String? receiptUrl;
 
   const Expense({
     required this.id,
@@ -141,6 +203,9 @@ class Expense {
     required this.split,
     required this.createdBy,
     required this.createdAt,
+    this.note,
+    this.category = ExpenseCategory.general,
+    this.receiptUrl,
   });
 
   // Validation
@@ -172,6 +237,9 @@ class Expense {
       'split': split.toJson(),
       'createdBy': createdBy,
       'createdAt': Timestamp.fromDate(createdAt),
+      if (note != null && note!.isNotEmpty) 'note': note,
+      'category': category.name,
+      if (receiptUrl != null && receiptUrl!.isNotEmpty) 'receiptUrl': receiptUrl,
     };
   }
 
@@ -186,6 +254,9 @@ class Expense {
       split: ExpenseSplit.fromJson(json['split'] ?? {}),
       createdBy: json['createdBy'] ?? '',
       createdAt: (json['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      note: json['note'] as String?,
+      category: ExpenseCategory.fromStorage(json['category'] as String?),
+      receiptUrl: json['receiptUrl'] as String?,
     );
   }
 
@@ -199,6 +270,11 @@ class Expense {
     ExpenseSplit? split,
     String? createdBy,
     DateTime? createdAt,
+    String? note,
+    ExpenseCategory? category,
+    String? receiptUrl,
+    bool clearNote = false,
+    bool clearReceiptUrl = false,
   }) {
     return Expense(
       id: id ?? this.id,
@@ -210,6 +286,10 @@ class Expense {
       split: split ?? this.split,
       createdBy: createdBy ?? this.createdBy,
       createdAt: createdAt ?? this.createdAt,
+      note: clearNote ? null : (note ?? this.note),
+      category: category ?? this.category,
+      receiptUrl:
+          clearReceiptUrl ? null : (receiptUrl ?? this.receiptUrl),
     );
   }
 
@@ -225,19 +305,27 @@ class Expense {
         other.date == date &&
         other.split == split &&
         other.createdBy == createdBy &&
-        other.createdAt == createdAt;
+        other.createdAt == createdAt &&
+        other.note == note &&
+        other.category == category &&
+        other.receiptUrl == receiptUrl;
   }
 
   @override
   int get hashCode {
-    return id.hashCode ^
-        groupId.hashCode ^
-        description.hashCode ^
-        amount.hashCode ^
-        paidBy.hashCode ^
-        date.hashCode ^
-        split.hashCode ^
-        createdBy.hashCode ^
-        createdAt.hashCode;
+    return Object.hash(
+      id,
+      groupId,
+      description,
+      amount,
+      paidBy,
+      date,
+      split,
+      createdBy,
+      createdAt,
+      note,
+      category,
+      receiptUrl,
+    );
   }
 }

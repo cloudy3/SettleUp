@@ -256,6 +256,7 @@ class OfflineProvider extends ChangeNotifier {
         await groupService.createGroup(
           name: data['name'],
           description: data['description'],
+          currency: data['currency'] as String? ?? 'USD',
         );
         break;
       case 'update':
@@ -289,6 +290,7 @@ class OfflineProvider extends ChangeNotifier {
           toUserId: data['toUserId'],
           amount: data['amount'],
           note: data['note'],
+          paymentMethod: data['paymentMethod'] as String?,
         );
         break;
     }

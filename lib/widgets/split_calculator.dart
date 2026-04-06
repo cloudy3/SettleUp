@@ -30,12 +30,13 @@ class _SplitCalculatorState extends State<SplitCalculator>
   late ExpenseSplit _currentSplit;
   final Map<String, TextEditingController> _customControllers = {};
   final Map<String, TextEditingController> _percentageControllers = {};
+  final Map<String, TextEditingController> _shareControllers = {};
   Set<String> _selectedParticipants = {};
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _currentSplit = widget.initialSplit;
     _selectedParticipants = Set.from(_currentSplit.participants);
 
@@ -44,6 +45,7 @@ class _SplitCalculatorState extends State<SplitCalculator>
       final memberId = member['id'] as String;
       _customControllers[memberId] = TextEditingController();
       _percentageControllers[memberId] = TextEditingController();
+      _shareControllers[memberId] = TextEditingController();
     }
 
     // Set initial tab based on split type
@@ -59,6 +61,10 @@ class _SplitCalculatorState extends State<SplitCalculator>
         _tabController.index = 2;
         _updatePercentageControllers();
         break;
+      case SplitType.shares:
+        _tabController.index = 3;
+        _updateShareControllers();
+        break;
     }
 
     _tabController.addListener(_onTabChanged);
@@ -71,6 +77,9 @@ class _SplitCalculatorState extends State<SplitCalculator>
       controller.dispose();
     }
     for (final controller in _percentageControllers.values) {
+      controller.dispose();
+    }
+    for (final controller in _shareControllers.values) {
       controller.dispose();
     }
     super.dispose();
@@ -98,6 +107,7 @@ class _SplitCalculatorState extends State<SplitCalculator>
               Tab(text: 'Equal'),
               Tab(text: 'Custom'),
               Tab(text: 'Percentage'),
+              Tab(text: 'Shares'),
             ],
           ),
           SizedBox(
@@ -111,6 +121,7 @@ class _SplitCalculatorState extends State<SplitCalculator>
                 _buildEqualSplitTab(),
                 _buildCustomSplitTab(),
                 _buildPercentageSplitTab(),
+                _buildSharesSplitTab(),
               ],
             ),
           ),
@@ -423,6 +434,112 @@ class _SplitCalculatorState extends State<SplitCalculator>
     );
   }
 
+  Widget _buildSharesSplitTab() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Enter share counts (weights). Amounts split in proportion.',
+            style: TextStyle(fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: ListView.builder(
+              itemCount: widget.groupMembers.length,
+              itemBuilder: (context, index) {
+                final member = widget.groupMembers[index];
+                final memberId = member['id'] as String;
+                final controller = _shareControllers[memberId]!;
+                final isParticipant = _selectedParticipants.contains(memberId);
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        Checkbox(
+                          value: isParticipant,
+                          onChanged: widget.readOnly
+                              ? null
+                              : (value) {
+                                  setState(() {
+                                    if (value == true) {
+                                      _selectedParticipants.add(memberId);
+                                      if (controller.text.isEmpty) {
+                                        controller.text = '1';
+                                      }
+                                    } else {
+                                      _selectedParticipants.remove(memberId);
+                                      controller.clear();
+                                    }
+                                    _updateSharesSplit();
+                                  });
+                                },
+                        ),
+                        CircleAvatar(
+                          radius: 16,
+                          backgroundColor: Theme.of(context).primaryColor,
+                          child: Text(
+                            member['name'].isNotEmpty
+                                ? member['name'][0].toUpperCase()
+                                : '?',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            member['name'] ?? member['email'],
+                            style: TextStyle(
+                              color: isParticipant ? null : Colors.grey,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextFormField(
+                            controller: controller,
+                            enabled: isParticipant && !widget.readOnly,
+                            decoration: const InputDecoration(
+                              suffixText: 'sh',
+                              hintText: '1',
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 8,
+                              ),
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'^\d*\.?\d{0,2}'),
+                              ),
+                            ],
+                            onChanged: (value) => _updateSharesSplit(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          _buildSharesSplitSummary(),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCustomSplitSummary() {
     double totalCustom = 0.0;
     for (final memberId in _selectedParticipants) {
@@ -516,6 +633,39 @@ class _SplitCalculatorState extends State<SplitCalculator>
     );
   }
 
+  Widget _buildSharesSplitSummary() {
+    double totalWeight = 0.0;
+    for (final memberId in _selectedParticipants) {
+      totalWeight +=
+          double.tryParse(_shareControllers[memberId]!.text) ?? 0.0;
+    }
+
+    final isValid = _selectedParticipants.isNotEmpty && totalWeight > 0;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isValid
+            ? Colors.green.withValues(alpha: 0.1)
+            : Colors.red.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text('Total share weight:'),
+          Text(
+            totalWeight.toStringAsFixed(2),
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: isValid ? Colors.green : Colors.red,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _onTabChanged() {
     if (!_tabController.indexIsChanging) return;
 
@@ -529,6 +679,9 @@ class _SplitCalculatorState extends State<SplitCalculator>
           break;
         case 2:
           _updatePercentageSplit();
+          break;
+        case 3:
+          _updateSharesSplit();
           break;
       }
     });
@@ -600,6 +753,30 @@ class _SplitCalculatorState extends State<SplitCalculator>
     }
   }
 
+  void _updateSharesSplit() {
+    final weights = <String, double>{};
+
+    for (final memberId in _selectedParticipants) {
+      final w = double.tryParse(_shareControllers[memberId]!.text) ?? 0.0;
+      if (w > 0) {
+        weights[memberId] = w;
+      }
+    }
+
+    if (weights.isEmpty) return;
+
+    try {
+      _currentSplit = ExpenseSplit(
+        type: SplitType.shares,
+        participants: weights.keys.toList(),
+        shares: weights,
+      );
+      widget.onSplitChanged?.call(_currentSplit);
+    } catch (e) {
+      // Handle error silently or show user feedback
+    }
+  }
+
   void _updateCustomControllers() {
     for (final entry in _currentSplit.shares.entries) {
       _customControllers[entry.key]?.text = entry.value.toStringAsFixed(2);
@@ -609,6 +786,15 @@ class _SplitCalculatorState extends State<SplitCalculator>
   void _updatePercentageControllers() {
     for (final entry in _currentSplit.shares.entries) {
       _percentageControllers[entry.key]?.text = entry.value.toStringAsFixed(1);
+    }
+  }
+
+  void _updateShareControllers() {
+    for (final entry in _currentSplit.shares.entries) {
+      _shareControllers[entry.key]?.text =
+          entry.value == entry.value.roundToDouble()
+              ? entry.value.toStringAsFixed(0)
+              : entry.value.toStringAsFixed(2);
     }
   }
 
@@ -622,6 +808,9 @@ class _SplitCalculatorState extends State<SplitCalculator>
         break;
       case SplitType.percentage:
         _updatePercentageSplit();
+        break;
+      case SplitType.shares:
+        _updateSharesSplit();
         break;
     }
   }

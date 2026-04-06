@@ -2,17 +2,20 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../models/models.dart';
 import '../services/services.dart';
+import '../utils/currency_format.dart';
 import 'settle_up_screen.dart';
 import 'settlement_history_screen.dart';
 
 class BalanceScreen extends StatefulWidget {
   final String groupId;
   final List<Map<String, dynamic>> groupMembers;
+  final String currencyCode;
 
   const BalanceScreen({
     super.key,
     required this.groupId,
     required this.groupMembers,
+    this.currencyCode = 'USD',
   });
 
   @override
@@ -22,6 +25,9 @@ class BalanceScreen extends StatefulWidget {
 class _BalanceScreenState extends State<BalanceScreen> {
   final BalanceService _balanceService = BalanceService();
   final String? _currentUserId = FirebaseAuth.instance.currentUser?.uid;
+
+  String _money(double amount) =>
+      formatCurrencyAmount(amount, widget.currencyCode);
 
   @override
   Widget build(BuildContext context) {
@@ -85,6 +91,8 @@ class _BalanceScreenState extends State<BalanceScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildOverallBalanceCard(currentUserBalance),
+          const SizedBox(height: 24),
+          _buildSimplifiedDebtsSection(balances),
           const SizedBox(height: 24),
           _buildYouOweSection(currentUserBalance),
           const SizedBox(height: 24),
@@ -181,8 +189,8 @@ class _BalanceScreenState extends State<BalanceScreen> {
                     Expanded(
                       child: Text(
                         balance.netBalance > 0
-                            ? 'You are owed \$${balance.netBalance.toStringAsFixed(2)}'
-                            : 'You owe \$${(-balance.netBalance).toStringAsFixed(2)}',
+                            ? 'You are owed ${_money(balance.netBalance)}'
+                            : 'You owe ${_money(-balance.netBalance)}',
                         style: TextStyle(
                           color: balance.netBalance > 0
                               ? Colors.green
@@ -197,6 +205,60 @@ class _BalanceScreenState extends State<BalanceScreen> {
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Read-only suggestions from [BalanceService.simplifyDebts] — does not write to Firestore.
+  Widget _buildSimplifiedDebtsSection(List<Balance> balances) {
+    if (balances.length < 2) return const SizedBox.shrink();
+
+    final allSettled = balances.every((b) => b.isSettledUp);
+    if (allSettled) return const SizedBox.shrink();
+
+    final suggestions = _balanceService.simplifyDebts(balances);
+    if (suggestions.isEmpty) return const SizedBox.shrink();
+
+    return Card(
+      child: ExpansionTile(
+        leading: Icon(Icons.account_tree, color: Theme.of(context).primaryColor),
+        title: const Text('Simplified payments'),
+        subtitle: const Text(
+          'Fewer transfers that still settle the group. Suggestions only — record payments with Settle up.',
+        ),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${suggestions.length} payment${suggestions.length == 1 ? '' : 's'} suggested',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                ...suggestions.map((s) {
+                  final fromName = _getMemberName(s.fromUserId);
+                  final toName = _getMemberName(s.toUserId);
+                  return ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text('$fromName pays $toName'),
+                    trailing: Text(
+                      _money(s.amount),
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    onTap: _currentUserId == s.fromUserId
+                        ? () => _navigateToSettleUp(s.toUserId, s.amount)
+                        : null,
+                  );
+                }),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -245,7 +307,7 @@ class _BalanceScreenState extends State<BalanceScreen> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '\$${entry.value.toStringAsFixed(2)}',
+                      _money(entry.value),
                       style: const TextStyle(
                         color: Colors.red,
                         fontWeight: FontWeight.w600,
@@ -304,7 +366,7 @@ class _BalanceScreenState extends State<BalanceScreen> {
                 title: Text('$memberName owes you'),
                 subtitle: const Text('Waiting for payment'),
                 trailing: Text(
-                  '\$${entry.value.toStringAsFixed(2)}',
+                  _money(entry.value),
                   style: const TextStyle(
                     color: Colors.green,
                     fontWeight: FontWeight.w600,
@@ -362,8 +424,8 @@ class _BalanceScreenState extends State<BalanceScreen> {
                   balance.isSettledUp
                       ? 'Settled up'
                       : balance.netBalance > 0
-                      ? 'Gets back \$${balance.netBalance.toStringAsFixed(2)}'
-                      : 'Owes \$${(-balance.netBalance).toStringAsFixed(2)}',
+                      ? 'Gets back ${_money(balance.netBalance)}'
+                      : 'Owes ${_money(-balance.netBalance)}',
                 ),
                 trailing: balance.isSettledUp
                     ? const Icon(Icons.check_circle, color: Colors.green)
@@ -432,6 +494,7 @@ class _BalanceScreenState extends State<BalanceScreen> {
           toUserId: userId,
           amount: amount,
           toUserName: _getMemberName(userId),
+          currencyCode: widget.currencyCode,
         ),
       ),
     );
@@ -467,6 +530,7 @@ class _BalanceScreenState extends State<BalanceScreen> {
             groupId: widget.groupId,
             groupMembers: widget.groupMembers,
             groupName: groupName,
+            currencyCode: widget.currencyCode,
           ),
         ),
       );

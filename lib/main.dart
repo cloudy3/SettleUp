@@ -386,10 +386,22 @@ class _BalanceScreenWrapper extends StatelessWidget {
 
   const _BalanceScreenWrapper({required this.groupId});
 
+  static Future<({List<Map<String, dynamic>> members, String currency})>
+      _load(String groupId) async {
+    final gs = GroupService();
+    final members = await gs.getGroupMembers(groupId);
+    final group = await gs.getGroupById(groupId);
+    return (
+      members: members,
+      currency: group?.currency ?? 'USD',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: GroupService().getGroupMembers(groupId),
+    return FutureBuilder<
+        ({List<Map<String, dynamic>> members, String currency})>(
+      future: _load(groupId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Scaffold(
@@ -419,8 +431,12 @@ class _BalanceScreenWrapper extends StatelessWidget {
           );
         }
 
-        final groupMembers = snapshot.data ?? [];
-        return BalanceScreen(groupId: groupId, groupMembers: groupMembers);
+        final data = snapshot.data!;
+        return BalanceScreen(
+          groupId: groupId,
+          groupMembers: data.members,
+          currencyCode: data.currency,
+        );
       },
     );
   }
@@ -440,10 +456,22 @@ class _SettleUpScreenWrapper extends StatelessWidget {
     required this.amount,
   });
 
+  Future<({String toUserName, String currency})> _load() async {
+    final userDoc = await FirebaseFirestore.instance
+        .collection('Users')
+        .doc(toUserId)
+        .get();
+    final group = await GroupService().getGroupById(groupId);
+    return (
+      toUserName: userDoc.data()?['name'] ?? 'Unknown User',
+      currency: group?.currency ?? 'USD',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<String>(
-      future: _getToUserName(),
+    return FutureBuilder<({String toUserName, String currency})>(
+      future: _load(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Scaffold(
@@ -473,23 +501,16 @@ class _SettleUpScreenWrapper extends StatelessWidget {
           );
         }
 
-        final toUserName = snapshot.data ?? 'Unknown User';
+        final data = snapshot.data!;
         return SettleUpScreen(
           groupId: groupId,
           toUserId: toUserId,
-          toUserName: toUserName,
+          toUserName: data.toUserName,
           amount: amount,
+          currencyCode: data.currency,
         );
       },
     );
-  }
-
-  Future<String> _getToUserName() async {
-    final userDoc = await FirebaseFirestore.instance
-        .collection('Users')
-        .doc(toUserId)
-        .get();
-    return userDoc.data()?['name'] ?? 'Unknown User';
   }
 }
 
@@ -537,6 +558,7 @@ class _SettlementHistoryScreenWrapper extends StatelessWidget {
           groupId: groupId,
           groupName: data['groupName'],
           groupMembers: data['groupMembers'],
+          currencyCode: data['currencyCode'] as String? ?? 'USD',
         );
       },
     );
@@ -550,7 +572,11 @@ class _SettlementHistoryScreenWrapper extends StatelessWidget {
     }
     final groupMembers = await groupService.getGroupMembers(groupId);
 
-    return {'groupName': group.name, 'groupMembers': groupMembers};
+    return {
+      'groupName': group.name,
+      'groupMembers': groupMembers,
+      'currencyCode': group.currency,
+    };
   }
 }
 

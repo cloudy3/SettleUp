@@ -1,17 +1,20 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:settle_up/theme/app_theme.dart';
 import 'package:settle_up/theme/app_tokens.dart';
 
 import '../services/services.dart';
+import '../utils/currency_format.dart';
 
 class SettleUpScreen extends StatefulWidget {
   final String groupId;
   final String toUserId;
   final double amount;
   final String toUserName;
+  final String currencyCode;
 
   const SettleUpScreen({
     super.key,
@@ -19,6 +22,7 @@ class SettleUpScreen extends StatefulWidget {
     required this.toUserId,
     required this.amount,
     required this.toUserName,
+    this.currencyCode = 'USD',
   });
 
   @override
@@ -34,6 +38,17 @@ class _SettleUpScreenState extends State<SettleUpScreen> {
 
   bool _isLoading = false;
   bool _isPartialPayment = false;
+  String _paymentMethod = 'cash';
+
+  static const List<({String value, String label})> _paymentMethods = [
+    (value: 'cash', label: 'Cash'),
+    (value: 'venmo', label: 'Venmo'),
+    (value: 'paypal', label: 'PayPal'),
+    (value: 'zelle', label: 'Zelle'),
+    (value: 'other', label: 'Other'),
+  ];
+
+  String _money(double v) => formatCurrencyAmount(v, widget.currencyCode);
 
   @override
   void initState() {
@@ -73,6 +88,8 @@ class _SettleUpScreenState extends State<SettleUpScreen> {
               _buildAmountSection(),
               const SizedBox(height: AppSpacing.xl),
               _buildNoteSection(),
+              const SizedBox(height: AppSpacing.xl),
+              _buildPaymentMethodSection(),
               const SizedBox(height: AppSpacing.xxl),
               _buildConfirmationSection(),
             ],
@@ -143,7 +160,7 @@ class _SettleUpScreenState extends State<SettleUpScreen> {
                 ),
               ),
               child: Text(
-                'Total owed: \$${widget.amount.toStringAsFixed(2)}',
+                'Total owed: ${_money(widget.amount)}',
                 style: TextStyle(
                   color: semantic.warning,
                   fontWeight: FontWeight.w600,
@@ -185,10 +202,10 @@ class _SettleUpScreenState extends State<SettleUpScreen> {
                       RegExp(r'^\d*\.?\d{0,2}'),
                     ),
                   ],
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Amount',
-                    prefixText: '\$',
-                    border: OutlineInputBorder(),
+                    hintText: _money(0),
+                    border: const OutlineInputBorder(),
                     helperText: 'Enter the amount you are paying',
                   ),
                   validator: (value) {
@@ -200,7 +217,7 @@ class _SettleUpScreenState extends State<SettleUpScreen> {
                       return 'Please enter a valid amount';
                     }
                     if (amount > widget.amount) {
-                      return 'Amount cannot exceed what you owe (\$${widget.amount.toStringAsFixed(2)})';
+                      return 'Amount cannot exceed what you owe (${_money(widget.amount)})';
                     }
                     return null;
                   },
@@ -261,7 +278,7 @@ class _SettleUpScreenState extends State<SettleUpScreen> {
                         const SizedBox(width: AppSpacing.sm),
                         Expanded(
                           child: Text(
-                            'This is a partial payment. You will still owe \$${(widget.amount - (double.tryParse(_amountController.text) ?? 0)).toStringAsFixed(2)}',
+                            'This is a partial payment. You will still owe ${_money(widget.amount - (double.tryParse(_amountController.text) ?? 0))}',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: semantic.warning,
                               fontWeight: FontWeight.w600,
@@ -310,6 +327,80 @@ class _SettleUpScreenState extends State<SettleUpScreen> {
         ),
       ],
     );
+  }
+
+  Widget _buildPaymentMethodSection() {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Payment method',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Card(
+          child: Padding(
+            padding: AppInsets.card,
+            child: DropdownButtonFormField<String>(
+              initialValue: _paymentMethod,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'How are you paying?',
+              ),
+              items: _paymentMethods
+                  .map(
+                    (e) => DropdownMenuItem(
+                      value: e.value,
+                      child: Text(e.label),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (v) {
+                if (v != null) {
+                  setState(() => _paymentMethod = v);
+                }
+              },
+            ),
+          ),
+        ),
+        if (_paymentMethod == 'venmo' || _paymentMethod == 'paypal') ...[
+          const SizedBox(height: AppSpacing.md),
+          OutlinedButton.icon(
+            onPressed: _openPaymentAppHint,
+            icon: const Icon(Icons.open_in_new),
+            label: Text(
+              _paymentMethod == 'venmo'
+                  ? 'Open Venmo'
+                  : 'Open PayPal in browser',
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _openPaymentAppHint() async {
+    final amount = double.tryParse(_amountController.text) ?? widget.amount;
+    final uri = _paymentMethod == 'venmo'
+        ? Uri.parse('https://venmo.com/')
+        : Uri.parse('https://www.paypal.com/');
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open app. Complete the payment manually.'),
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildConfirmationSection() {
@@ -435,6 +526,7 @@ class _SettleUpScreenState extends State<SettleUpScreen> {
         note: _noteController.text.trim().isEmpty
             ? null
             : _noteController.text.trim(),
+        paymentMethod: _paymentMethod,
       );
 
       if (mounted) {
@@ -485,7 +577,7 @@ class _SettleUpScreenState extends State<SettleUpScreen> {
                       Icon(Icons.payment, color: semantic.success),
                       const SizedBox(width: AppSpacing.sm),
                       Text(
-                        '\$${amount.toStringAsFixed(2)} to ${widget.toUserName}',
+                        '${_money(amount)} to ${widget.toUserName}',
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),

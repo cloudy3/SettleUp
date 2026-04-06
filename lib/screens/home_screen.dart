@@ -6,6 +6,7 @@ import "package:settle_up/screens/account_screen.dart";
 import "package:settle_up/screens/group_list_screen.dart";
 import "package:settle_up/screens/invitation_screen.dart";
 import "package:settle_up/screens/create_group_screen.dart";
+import "package:settle_up/screens/friends_screen.dart";
 import "package:settle_up/services/group_service.dart";
 import "package:settle_up/widgets/notification_widget.dart";
 import "package:settle_up/widgets/offline_indicator.dart";
@@ -28,7 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // Pages for each tab
   final List<Widget> _pages = [
     const GroupListScreen(),
-    const Center(child: Text("Friends Page")),
+    const FriendsScreen(),
     const ActivityFeedWidget(),
     const AccountScreen(),
   ];
@@ -84,7 +85,9 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Show options for adding expense - either create new group or select existing group
   void _showAddExpenseOptions(BuildContext context) {
     final appState = context.read<AppStateProvider>();
-    final groups = appState.groups;
+    final groups = appState.groups
+        .where((g) => !g.isPairGroup)
+        .toList();
 
     if (groups.isEmpty) {
       // No groups available, prompt to create one
@@ -279,14 +282,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 label: const Text("Add Expense"),
                 icon: const Icon(Icons.add),
               )
-            : null, // Show FAB only on Groups Page
+            : null,
       ),
     );
   }
 
   /// Build group shortcuts section
   Widget _buildGroupShortcuts(BuildContext context, AppStateProvider appState) {
-    final recentGroups = appState.groups.take(3).toList();
+    final recentGroups =
+        appState.groups.where((g) => !g.isPairGroup).take(3).toList();
 
     if (recentGroups.isEmpty) {
       return const SizedBox.shrink();

@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import '../models/models.dart';
 import '../services/services.dart';
+import '../utils/currency_format.dart';
 
 class SettlementHistoryWidget extends StatelessWidget {
   final String groupId;
   final List<Map<String, dynamic>> groupMembers;
+  final String currencyCode;
 
   const SettlementHistoryWidget({
     super.key,
     required this.groupId,
     required this.groupMembers,
+    this.currencyCode = 'USD',
   });
 
   @override
@@ -160,7 +163,10 @@ class SettlementHistoryWidget extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '\$${settlement.amount.toStringAsFixed(2)}',
+                      formatCurrencyAmount(
+                        settlement.amount,
+                        currencyCode,
+                      ),
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -180,6 +186,14 @@ class SettlementHistoryWidget extends StatelessWidget {
                 ),
               ],
             ),
+            if (settlement.paymentMethod != null &&
+                settlement.paymentMethod!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Method: ${settlement.paymentMethod}',
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
             if (settlement.note != null && settlement.note!.isNotEmpty) ...[
               const SizedBox(height: 12),
               Container(

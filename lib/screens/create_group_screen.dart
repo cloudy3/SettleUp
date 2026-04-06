@@ -26,6 +26,18 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
   final FormValidator _formValidator = FormValidator();
 
   bool _isOffline = false;
+  String _currency = 'USD';
+
+  static const List<String> _currencyCodes = [
+    'USD',
+    'EUR',
+    'GBP',
+    'CAD',
+    'AUD',
+    'JPY',
+    'MXN',
+    'INR',
+  ];
 
   @override
   void initState() {
@@ -111,6 +123,8 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                     _buildNameField(),
                     const SizedBox(height: 16),
                     _buildDescriptionField(),
+                    const SizedBox(height: 16),
+                    _buildCurrencyField(),
                     const SizedBox(height: 32),
                     _buildCreateButton(),
                     const SizedBox(height: 16),
@@ -160,6 +174,30 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
           () => FormValidators.maxLength(value, 50, 'Group name'),
         ]);
         return error?.displayMessage;
+      },
+    );
+  }
+
+  Widget _buildCurrencyField() {
+    return DropdownButtonFormField<String>(
+      initialValue: _currency,
+      decoration: const InputDecoration(
+        labelText: 'Currency',
+        border: OutlineInputBorder(),
+        prefixIcon: Icon(Icons.currency_exchange),
+      ),
+      items: _currencyCodes
+          .map(
+            (c) => DropdownMenuItem(
+              value: c,
+              child: Text(c),
+            ),
+          )
+          .toList(),
+      onChanged: (value) {
+        if (value != null) {
+          setState(() => _currency = value);
+        }
       },
     );
   }
@@ -276,6 +314,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
         final group = await _groupService.createGroup(
           name: _nameController.text.trim(),
           description: _descriptionController.text.trim(),
+          currency: _currency,
         );
 
         if (mounted) {

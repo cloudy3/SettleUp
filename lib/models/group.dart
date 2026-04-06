@@ -84,6 +84,10 @@ class Group {
   final List<String> memberIds;
   final List<GroupInvitation> pendingInvitations;
   final double totalExpenses;
+  /// Stable id for a two-person friend ledger: `minUid_maxUid`.
+  final String? pairKey;
+  /// ISO 4217 code (e.g. USD).
+  final String currency;
 
   const Group({
     required this.id,
@@ -94,17 +98,37 @@ class Group {
     required this.memberIds,
     required this.pendingInvitations,
     required this.totalExpenses,
+    this.pairKey,
+    this.currency = 'USD',
   });
+
+  bool get isPairGroup => pairKey != null && pairKey!.isNotEmpty;
+
+  static String pairKeyForUserIds(String uidA, String uidB) {
+    if (uidA.compareTo(uidB) <= 0) {
+      return '${uidA}_$uidB';
+    }
+    return '${uidB}_$uidA';
+  }
 
   // Validation
   bool get isValid {
-    return id.isNotEmpty &&
-        name.trim().isNotEmpty &&
-        createdBy.isNotEmpty &&
-        memberIds.isNotEmpty &&
-        memberIds.contains(createdBy) &&
-        totalExpenses >= 0 &&
-        pendingInvitations.every((invitation) => invitation.isValid);
+    if (id.isEmpty ||
+        name.trim().isEmpty ||
+        createdBy.isEmpty ||
+        memberIds.isEmpty ||
+        !memberIds.contains(createdBy) ||
+        totalExpenses < 0 ||
+        !pendingInvitations.every((invitation) => invitation.isValid)) {
+      return false;
+    }
+    if (pairKey != null && pairKey!.isNotEmpty) {
+      if (memberIds.length != 2) return false;
+      if (pairKey != pairKeyForUserIds(memberIds[0], memberIds[1])) {
+        return false;
+      }
+    }
+    return true;
   }
 
   // JSON serialization
@@ -120,6 +144,8 @@ class Group {
           .map((inv) => inv.toJson())
           .toList(),
       'totalExpenses': totalExpenses,
+      if (pairKey != null) 'pairKey': pairKey,
+      'currency': currency,
     };
   }
 
@@ -139,6 +165,8 @@ class Group {
               .toList() ??
           [],
       totalExpenses: (json['totalExpenses'] ?? 0).toDouble(),
+      pairKey: json['pairKey'] as String?,
+      currency: json['currency'] as String? ?? 'USD',
     );
   }
 
@@ -151,6 +179,8 @@ class Group {
     List<String>? memberIds,
     List<GroupInvitation>? pendingInvitations,
     double? totalExpenses,
+    String? pairKey,
+    String? currency,
   }) {
     return Group(
       id: id ?? this.id,
@@ -161,6 +191,8 @@ class Group {
       memberIds: memberIds ?? this.memberIds,
       pendingInvitations: pendingInvitations ?? this.pendingInvitations,
       totalExpenses: totalExpenses ?? this.totalExpenses,
+      pairKey: pairKey ?? this.pairKey,
+      currency: currency ?? this.currency,
     );
   }
 
@@ -175,7 +207,9 @@ class Group {
         other.createdAt == createdAt &&
         _listEquals(other.memberIds, memberIds) &&
         _listEquals(other.pendingInvitations, pendingInvitations) &&
-        other.totalExpenses == totalExpenses;
+        other.totalExpenses == totalExpenses &&
+        other.pairKey == pairKey &&
+        other.currency == currency;
   }
 
   @override
@@ -189,6 +223,8 @@ class Group {
       memberIds,
       pendingInvitations,
       totalExpenses,
+      pairKey,
+      currency,
     );
   }
 

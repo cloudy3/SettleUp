@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/models.dart';
 
 class ExpenseService {
@@ -22,6 +24,9 @@ class ExpenseService {
     required String paidBy,
     required DateTime date,
     required ExpenseSplit split,
+    String? note,
+    ExpenseCategory category = ExpenseCategory.general,
+    XFile? receiptFile,
   }) async {
     final currentUser = _auth.currentUser;
     if (currentUser == null) {
@@ -50,6 +55,17 @@ class ExpenseService {
     final now = DateTime.now();
     final expenseId = _expensesCollection.doc().id;
 
+    String? receiptUrl;
+    if (receiptFile != null) {
+      receiptUrl = await _uploadReceipt(
+        groupId: groupId,
+        expenseId: expenseId,
+        file: receiptFile,
+      );
+    }
+
+    final trimmedNote = note?.trim();
+
     final expense = Expense(
       id: expenseId,
       groupId: groupId,
@@ -60,6 +76,9 @@ class ExpenseService {
       split: split,
       createdBy: currentUser.uid,
       createdAt: now,
+      note: (trimmedNote == null || trimmedNote.isEmpty) ? null : trimmedNote,
+      category: category,
+      receiptUrl: receiptUrl,
     );
 
     // Final validation
@@ -93,6 +112,11 @@ class ExpenseService {
     String? paidBy,
     DateTime? date,
     ExpenseSplit? split,
+    String? note,
+    bool clearNote = false,
+    ExpenseCategory? category,
+    XFile? receiptFile,
+    bool clearReceiptUrl = false,
   }) async {
     final currentUser = _auth.currentUser;
     if (currentUser == null) {
@@ -116,12 +140,30 @@ class ExpenseService {
     // Verify user is still a member of the group
     await _verifyGroupMembership(originalExpense.groupId, currentUser.uid);
 
+    String? receiptUrlOverride;
+    var clearReceipt = clearReceiptUrl;
+    if (receiptFile != null) {
+      receiptUrlOverride = await _uploadReceipt(
+        groupId: originalExpense.groupId,
+        expenseId: expenseId,
+        file: receiptFile,
+      );
+      clearReceipt = false;
+    }
+
     final updatedExpense = originalExpense.copyWith(
       description: description?.trim(),
       amount: amount,
       paidBy: paidBy,
       date: date,
       split: split,
+      note: note != null
+          ? (note.trim().isEmpty ? null : note.trim())
+          : null,
+      clearNote: clearNote,
+      category: category,
+      receiptUrl: receiptUrlOverride,
+      clearReceiptUrl: clearReceipt,
     );
 
     // Validate updated expense
@@ -147,14 +189,27 @@ class ExpenseService {
       throw ArgumentError('Invalid updated expense data');
     }
 
-    // Update expense in Firestore
-    await _expensesCollection.doc(expenseId).update({
+    final patch = <String, dynamic>{
       'description': updatedExpense.description,
       'amount': updatedExpense.amount,
       'paidBy': updatedExpense.paidBy,
       'date': Timestamp.fromDate(updatedExpense.date),
       'split': updatedExpense.split.toJson(),
-    });
+      'category': updatedExpense.category.name,
+    };
+    if (updatedExpense.note != null && updatedExpense.note!.isNotEmpty) {
+      patch['note'] = updatedExpense.note;
+    } else {
+      patch['note'] = FieldValue.delete();
+    }
+    if (updatedExpense.receiptUrl != null &&
+        updatedExpense.receiptUrl!.isNotEmpty) {
+      patch['receiptUrl'] = updatedExpense.receiptUrl;
+    } else {
+      patch['receiptUrl'] = FieldValue.delete();
+    }
+
+    await _expensesCollection.doc(expenseId).update(patch);
 
     // Create audit trail entry
     await _createAuditEntry(
@@ -310,6 +365,24 @@ class ExpenseService {
     );
   }
 
+  /// Split by relative weights (e.g. 2 shares vs 1 share).
+  ExpenseSplit createSharesSplit(Map<String, double> weights) {
+    if (weights.isEmpty) {
+      throw ArgumentError('Share weights cannot be empty');
+    }
+    for (final w in weights.values) {
+      if (w <= 0) {
+        throw ArgumentError('Each share weight must be positive');
+      }
+    }
+
+    return ExpenseSplit(
+      type: SplitType.shares,
+      participants: weights.keys.toList(),
+      shares: weights,
+    );
+  }
+
   /// Validates split configuration against total amount
   bool validateSplit(ExpenseSplit split, double totalAmount) {
     if (!split.isValid) return false;
@@ -378,6 +451,25 @@ class ExpenseService {
   }
 
   /// Private helper methods
+
+  Future<String> _uploadReceipt({
+    required String groupId,
+    required String expenseId,
+    required XFile file,
+  }) async {
+    final ref = FirebaseStorage.instance
+        .ref()
+        .child('receipts')
+        .child(groupId)
+        .child(expenseId)
+        .child('receipt');
+    final bytes = await file.readAsBytes();
+    await ref.putData(
+      bytes,
+      SettableMetadata(contentType: file.mimeType ?? 'image/jpeg'),
+    );
+    return ref.getDownloadURL();
+  }
 
   /// Validates expense input parameters
   void _validateExpenseInput({

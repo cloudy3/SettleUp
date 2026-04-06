@@ -122,6 +122,8 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
           children: [
             _buildExpenseHeader(),
             const SizedBox(height: 24),
+            _buildMetadataSection(),
+            const SizedBox(height: 24),
             _buildSplitDetails(),
             const SizedBox(height: 24),
             _buildParticipantsList(),
@@ -224,6 +226,62 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
     );
   }
 
+  Widget _buildMetadataSection() {
+    final hasNote =
+        _expense!.note != null && _expense!.note!.trim().isNotEmpty;
+    final hasReceipt =
+        _expense!.receiptUrl != null && _expense!.receiptUrl!.isNotEmpty;
+    if (_expense!.category == ExpenseCategory.general &&
+        !hasNote &&
+        !hasReceipt) {
+      return const SizedBox.shrink();
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Details',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            if (_expense!.category != ExpenseCategory.general) ...[
+              const SizedBox(height: 8),
+              Chip(
+                label: Text(_expense!.category.label),
+                visualDensity: VisualDensity.compact,
+              ),
+            ],
+            if (hasNote) ...[
+              const SizedBox(height: 8),
+              Text(_expense!.note!.trim()),
+            ],
+            if (hasReceipt) ...[
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  _expense!.receiptUrl!,
+                  height: 200,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const Padding(
+                    padding: EdgeInsets.all(8),
+                    child: Text('Receipt image unavailable'),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildSplitDetails() {
     return Card(
       child: Padding(
@@ -292,6 +350,8 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
         const SizedBox(height: 12),
         if (_expense!.split.type == SplitType.percentage)
           _buildPercentageBreakdown()
+        else if (_expense!.split.type == SplitType.shares)
+          _buildSharesBreakdown()
         else
           _buildAmountBreakdown(),
       ],
@@ -329,6 +389,53 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
               Expanded(child: Text(memberName)),
               Text(
                 '${percentage.toStringAsFixed(1)}%',
+                style: TextStyle(color: Colors.grey[600], fontSize: 12),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '\$${amount.toStringAsFixed(2)}',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildSharesBreakdown() {
+    return Column(
+      children: _expense!.split.shares.entries.map((entry) {
+        final memberName = _getMemberName(entry.key);
+        final weight = entry.value;
+        final amount =
+            _expense!.participantAmounts[entry.key] ?? 0.0;
+        final wText = weight == weight.roundToDouble()
+            ? weight.toStringAsFixed(0)
+            : weight.toStringAsFixed(1);
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: Theme.of(
+                  context,
+                ).primaryColor.withValues(alpha: 0.2),
+                child: Text(
+                  memberName.isNotEmpty ? memberName[0].toUpperCase() : '?',
+                  style: TextStyle(
+                    color: Theme.of(context).primaryColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Text(memberName)),
+              Text(
+                '$wText sh',
                 style: TextStyle(color: Colors.grey[600], fontSize: 12),
               ),
               const SizedBox(width: 8),
@@ -494,6 +601,8 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
         return Icons.tune;
       case SplitType.percentage:
         return Icons.percent;
+      case SplitType.shares:
+        return Icons.balance;
     }
   }
 
@@ -505,6 +614,8 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
         return 'Custom Split';
       case SplitType.percentage:
         return 'Percentage Split';
+      case SplitType.shares:
+        return 'Shares Split';
     }
   }
 

@@ -160,6 +160,7 @@ class BalanceService {
     required String toUserId,
     required double amount,
     String? note,
+    String? paymentMethod,
   }) async {
     final currentUser = auth.currentUser;
     if (currentUser == null) {
@@ -191,6 +192,7 @@ class BalanceService {
     }
 
     final settlementId = _settlementsCollection.doc().id;
+    final pm = paymentMethod?.trim();
     final settlement = Settlement(
       id: settlementId,
       groupId: groupId,
@@ -199,6 +201,7 @@ class BalanceService {
       amount: amount,
       settledAt: DateTime.now(),
       note: note?.trim(),
+      paymentMethod: (pm == null || pm.isEmpty) ? null : pm,
     );
 
     // Save settlement to Firestore
