@@ -16,7 +16,8 @@ tasks.register("prepareKotlinBuildScriptModel") {}
 
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
-if (keystorePropertiesFile.exists()) {
+val hasReleaseSigning = keystorePropertiesFile.exists()
+if (hasReleaseSigning) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
@@ -47,26 +48,44 @@ android {
         versionName = flutter.versionName
     }
 
-    signingConfigs {
-        create("release") {
-            keyAlias = keystoreProperties["keyAlias"] as String
-            keyPassword = keystoreProperties["keyPassword"] as String
-            storeFile = keystoreProperties["storeFile"]?.let { file(it) }
-            storePassword = keystoreProperties["storePassword"] as String
+    // Only declare the release signing config when key.properties is present.
+    // Without this guard a fresh clone or CI checkout fails during Gradle
+    // *configuration* — even for a debug build — because the property reads
+    // below cast null to String.
+    if (hasReleaseSigning) {
+        signingConfigs {
+            create("release") {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = keystoreProperties["storeFile"]?.let { file(it) }
+                storePassword = keystoreProperties["storePassword"] as String
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = if (hasReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                // Falls back to the debug keys so `flutter build --release` still
+                // produces a runnable artifact. Not publishable to Play.
+                logger.warn("key.properties not found — signing release with debug keys.")
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }
 
 dependencies {
-    implementation(platform("com.google.firebase:firebase-bom:34.0.0"))
-    implementation("com.google.firebase:firebase-analytics")
-    implementation("com.google.android.material:material:1.13.0-rc01")
+    // Version-aligns the Firebase artifacts pulled in transitively by the
+    // FlutterFire plugins. firebase-analytics is deliberately not declared: the
+    // app has no firebase_analytics Dart dependency, and pulling it in merges
+    // AD_ID / ACCESS_ADSERVICES_* permissions into the manifest, which forces an
+    // advertising-ID declaration in Play Console Data Safety for an unused feature.
+    implementation(platform("com.google.firebase:firebase-bom:34.16.0"))
+    // Required by the Theme.MaterialComponents parents in res/values/styles.xml.
+    implementation("com.google.android.material:material:1.14.0")
 }
 
 flutter {

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Matches AppTheme's light-scheme primary (lib/theme/app_theme.dart). -->
+    <color name="ic_launcher_background">#0B3D5C</color>
+</resources>

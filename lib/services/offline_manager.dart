@@ -25,18 +25,24 @@ class OfflineManager {
   /// Current connectivity status
   bool get isOnline => _isOnline;
 
+  /// Whether any of the reported transports represents a usable connection.
+  static bool _hasConnection(List<ConnectivityResult> results) =>
+      results.any((result) => result != ConnectivityResult.none);
+
   /// Initialize offline manager
   Future<void> initialize() async {
     _prefs = await SharedPreferences.getInstance();
 
     // Check initial connectivity
-    final connectivityResult = await _connectivity.checkConnectivity();
-    _isOnline = connectivityResult != ConnectivityResult.none;
+    final connectivityResults = await _connectivity.checkConnectivity();
+    _isOnline = _hasConnection(connectivityResults);
 
     // Listen to connectivity changes
-    _connectivity.onConnectivityChanged.listen((ConnectivityResult result) {
+    _connectivity.onConnectivityChanged.listen((
+      List<ConnectivityResult> results,
+    ) {
       final wasOnline = _isOnline;
-      _isOnline = result != ConnectivityResult.none;
+      _isOnline = _hasConnection(results);
 
       if (!wasOnline && _isOnline) {
         // Just came back online, trigger sync

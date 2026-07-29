@@ -18,7 +18,10 @@ pluginManagement {
 
 plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
-    id("com.android.application") version "8.11.1" apply false
+    // 8.13.2 rather than the Flutter template's 8.11.1: connectivity_plus 7.x
+    // requires AGP >= 8.12.1 and Gradle >= 8.13. Staying on the 8.x line — AGP 9
+    // is past the version Flutter 3.41.4 knows how to validate.
+    id("com.android.application") version "8.13.2" apply false
     id("org.jetbrains.kotlin.android") version "2.2.20" apply false
 }
 

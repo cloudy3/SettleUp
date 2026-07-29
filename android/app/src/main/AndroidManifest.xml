@@ -1,9 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Declared explicitly rather than relying on it being merged in from the
+         Firebase AARs, so the app keeps network access if those deps change. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="settle_up"
+        android:label="Settle Up"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:enableOnBackInvokedCallback="true">
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:enableOnBackInvokedCallback="true"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -41,6 +47,12 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Required on API 30+ for url_launcher's canLaunchUrl to resolve the
+             payment links opened from the settle-up screen. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
         </intent>
     </queries>
 </manifest>

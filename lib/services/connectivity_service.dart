@@ -9,7 +9,7 @@ class ConnectivityService {
   ConnectivityService._internal();
 
   final Connectivity _connectivity = Connectivity();
-  StreamSubscription<ConnectivityResult>? _connectivitySubscription;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   bool _isOnline = true;
   bool get isOnline => _isOnline;
@@ -37,12 +37,16 @@ class ConnectivityService {
     }
   }
 
+  /// Whether any of the reported transports represents a usable connection.
+  static bool _hasConnection(List<ConnectivityResult> results) =>
+      results.any((result) => result != ConnectivityResult.none);
+
   /// Update connection status based on connectivity results
-  void _updateConnectionStatus(ConnectivityResult connectivityResult) {
+  void _updateConnectionStatus(List<ConnectivityResult> connectivityResults) {
     final wasOnline = _isOnline;
 
-    // Consider online if connection type is available (except none)
-    _isOnline = connectivityResult != ConnectivityResult.none;
+    // Consider online if any connection type is available (except none)
+    _isOnline = _hasConnection(connectivityResults);
 
     // Notify listeners if status changed
     if (wasOnline != _isOnline) {
@@ -54,8 +58,8 @@ class ConnectivityService {
   /// Check current connectivity status
   Future<bool> checkConnectivity() async {
     try {
-      final connectivityResult = await _connectivity.checkConnectivity();
-      return connectivityResult != ConnectivityResult.none;
+      final connectivityResults = await _connectivity.checkConnectivity();
+      return _hasConnection(connectivityResults);
     } catch (e) {
       debugPrint('Failed to check connectivity: $e');
       return false;
@@ -65,14 +69,21 @@ class ConnectivityService {
   /// Get detailed connectivity information
   Future<Map<String, dynamic>> getConnectivityInfo() async {
     try {
-      final connectivityResult = await _connectivity.checkConnectivity();
+      final connectivityResults = await _connectivity.checkConnectivity();
+
+      // A device can report several active transports at once (e.g. wifi and
+      // vpn), so connectionType lists every one that isn't `none`.
+      final activeTypes = connectivityResults
+          .where((result) => result != ConnectivityResult.none)
+          .map((result) => result.name)
+          .toList();
 
       return {
-        'isOnline': connectivityResult != ConnectivityResult.none,
-        'connectionType': connectivityResult.name,
-        'hasWifi': connectivityResult == ConnectivityResult.wifi,
-        'hasMobile': connectivityResult == ConnectivityResult.mobile,
-        'hasEthernet': connectivityResult == ConnectivityResult.ethernet,
+        'isOnline': _hasConnection(connectivityResults),
+        'connectionType': activeTypes.isEmpty ? 'none' : activeTypes.join(', '),
+        'hasWifi': connectivityResults.contains(ConnectivityResult.wifi),
+        'hasMobile': connectivityResults.contains(ConnectivityResult.mobile),
+        'hasEthernet': connectivityResults.contains(ConnectivityResult.ethernet),
       };
     } catch (e) {
       debugPrint('Failed to get connectivity info: $e');

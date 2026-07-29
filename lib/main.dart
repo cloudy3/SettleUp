@@ -463,7 +463,7 @@ class _SettleUpScreenWrapper extends StatelessWidget {
         .get();
     final group = await GroupService().getGroupById(groupId);
     return (
-      toUserName: userDoc.data()?['name'] ?? 'Unknown User',
+      toUserName: (userDoc.data()?['name'] as String?) ?? 'Unknown User',
       currency: group?.currency ?? 'USD',
     );
   }

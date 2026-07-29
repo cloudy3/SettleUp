@@ -102,9 +102,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
           future: _friendsFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const ListView(
-                physics: AlwaysScrollableScrollPhysics(),
-                children: [
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: const [
                   SizedBox(height: 120),
                   Center(child: CircularProgressIndicator()),
                 ],

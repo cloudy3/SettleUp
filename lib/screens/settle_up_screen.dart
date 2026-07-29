@@ -388,18 +388,20 @@ class _SettleUpScreenState extends State<SettleUpScreen> {
     final uri = _paymentMethod == 'venmo'
         ? Uri.parse('https://venmo.com/')
         : Uri.parse('https://www.paypal.com/');
+    var launched = false;
     try {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
+      launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not open app. Complete the payment manually.'),
+      launched = false;
+    }
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Could not open the payment app. Send ${_money(amount)} manually.',
           ),
-        );
-      }
+        ),
+      );
     }
   }
 

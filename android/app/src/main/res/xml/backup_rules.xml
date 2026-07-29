@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Auto Backup rules for API 30 and below.
+
+     The offline queue and sync state written by OfflineManager / OfflineProvider
+     are caches of Firestore data keyed to the signed-in account. Restoring them
+     onto a different device or account replays stale pending operations, so they
+     are excluded. shared_preferences stores them under FlutterSharedPreferences
+     (legacy XML backend) or files/datastore (DataStore backend) depending on
+     which API the plugin resolves to, so both are excluded. -->
+<full-backup-content>
+    <exclude domain="sharedpref" path="FlutterSharedPreferences.xml"/>
+    <exclude domain="file" path="datastore"/>
+</full-backup-content>
